@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: briztal.github.io/sitemap.xml
