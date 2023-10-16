@@ -1,0 +1,92 @@
+
+TODO describe memory exception handling and interrupt priorities.
+
+TODO MPU can be used to prevent access to regions.
+
+TODO exception mechanism allows us to write the content of registers at the time of user thread interruption.
+
+TODO exception mechanism allows us to retrieve the PC of the instruction that was executed when the exception occurs.
+
+
+X : KASAN block diagram.
+
+The previous sections laid the foundations on which we will build the kasan :
+- we cannot use any transpiling-oriented method to wire our kasan due to potential code size increase.
+- we have an MPU that can trigger a memory fault whenever a specific portion of memory is accessed.
+- the handler of this memory fault can modify the interrupted code's stack context to modify the register values, and to alter its control flow.
+- the memory fault handler gives us the location of the fault, so as the address of the instruction that generated the fault.
+
+To implement our kasan, we will first use the MPU to disable access to the whole RAM region.
+
+That will cause any access to any RAM to fault, and the memory management fault handler to be executed.
+
+The memfault handler will save the part of the context that hasn't been saved by the HW somewhere in memory for the emulator (defined below) to retrieve it later.
+
+The memfault handler will then read the PC of the instruction that caused the fault, read the instruction and decode it.
+
+It will then check that the related instruction is a memory access. If it is not one, it will just execute the classic memory fault exception.
+
+If it is a memory access, it will emulate the instruction and perform its checking in the meantime.
+
+This is a complex task and will require a chapter of its own, and this will be the place where the memory checking is done. It involves :
+- decoding the instruction.
+- verifying that every access performed by the instruction is valid.
+- updating the kasan memory metadata to reflect the new state caused by the memory access (ex : write to an uninitialized location causes the location to be treated as initialized in subsequent accesses to that location).
+- emulating the instruction, by performing the underlying accesses : 
+  - register reads will cause the emulator to read the context-saved values.
+  - register writes will cause the emulator to write to the context-saved values.
+  - memory reads will cause the emulator to actually perform the read now that the MPU is disabled.
+  - memory writes will cause the emulator to actually perform the write 
+- if the instruction emulation is successfull, modifying the PC that will be restored when the exception will return, so that the instruction after the one that just was emulated is executed at that time, and not the one that we emulated again.
+
+When this is done, it will re-enable the KASAN MPU regions, reload the SW-saved context (possibly updated by the emulator since save), and return from exception.
+
+Then, the processor will restore the HW saved context (possibly updated by the emulator since save), and give control back to the interrupted thread, but at the instruction after the one that just trapped and got emulated.
+
+The following diagram summarizes the high level behavior or the kasan.
+
+TODO : summarize initialization sequence.
+
+TODO : summarize validation operation.
+
+XI : Whitelisting the stacks.
+
+In order for our MPU-based trap sytem to work, we need to add two other MPU regions, more prioritary than the RAM blacklist, to allow access to the user and exception stack (PSP, MSP). 
+
+If we didn't do this, any code making a memory access in the RAM would cause an exception.
+
+The processor, in the handling of this exception, would push the context to the stack in use at that moment (either Main or Process stack), which, if those regions were blacklisted by the MPU, would cause the memfault to be escalated in a hardfault.
+This is not what we want, as it has different privileges, and less recoverability possibility.
+
+This increses to 3 the number of MPU regions necessary to implement our kasan.
+
+
+
+XII : Disabling MPU regions in the memfault handler.
+
+The kasan memory access checker will run in the memfault hanler.
+
+This checker will likely access variables not located in the stack.
+
+This is a potential problem, as the MPU may still be active when this handler is executed.
+
+Even if we had the option to disable the MPU in handler mode, this would not be what we would want, as that would prevent the kasan to check
+accesses in handler mode, under which a large part of the kernel operates (syscall, scheduling, interrupts, etc...).
+
+To handle this situation, we will need to reprogram the MPU when we enter and exit the MemFault handler.
+
+On entry, we will disable the regions related to KASAN, and on exit, we will re-enable them.
+
+
+
+XIII : kernel memory management
+
+Before elaborating on how the kasan will check memory access, we need to elaborate a bit on how memory is managed in a microcontroller kernel.
+
+
+
+
+XIV : Kasan metadata
+
+
+
