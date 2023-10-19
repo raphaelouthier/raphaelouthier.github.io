@@ -8,7 +8,7 @@ showDateUpdated : false
 showHeadingAnchors : false
 showPagination : true
 showTableOfContents : true
-showTaxonomies : false 
+showTaxonomies : true 
 showWordCount : true
 showSummary : true
 sharingLinks : false
