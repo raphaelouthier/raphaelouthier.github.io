@@ -13,14 +13,14 @@ draft: false
 
 # Foreword
 
-This series of article will focus on how to implement a `KASAN` (or a memory access checker) on a microcontroller kernel.
+This series of articles will focus on how to implement a `KASAN` (or a memory access checker) on a microcontroller kernel.
 
 The introduction is a reflection of my personal opinions and of the motivations that lead me to implement my `KASAN`.
-The reader may find it cleaving, but they should find rest of the article more technically oriented.
+The reader may find it cleaving, but they should find the rest of the article more technically oriented.
 
 # The need for a proper debug infrastructure.
 
-Recently my wonderful wife made me the greatest present a kernel developper could immagine : a custom development board with a builtin `SWD` interface.
+Recently my wonderful wife designed and offered me the greatest present a kernel developer could imagine : a custom development board with a builtin `SWD` interface.
 
 {{< figure
     src="images/kasan/board.jpg"
@@ -28,12 +28,12 @@ Recently my wonderful wife made me the greatest present a kernel developper coul
     alt="dev board"
     >}}
 
-I had been looking for a devbvoard to get back to microcontroller programming for a while and my only need was a proper `SWD` interface to attach a debugger.
+I had been looking for a devboard to get back to microcontroller programming for a while and my only need was a proper `SWD` interface to attach a debugger.
 
 Seems like a pretty unrestrictive criterion, right ? False.
 
 Mainstream development boards provide a dedicated bootloader chip connected to the main chip's `SWD`/`JTAG` interface to handle the flashing for you.
-Though it may seem like a good idea, as it avoids you the pain of buying your own debug tools, it prevents you from being able to connect your own debugger.
+Though it may seem like a good idea, as it avoids the pain of buying your own debug tools, it prevents you from being able to connect your own debugger.
 
 [Unless you are willing to trash those bootloader chips](https://mcuoneclipse.com/2017/04/29/modifying-the-teensy-3-5-and-3-6-for-arm-swd-debugging/)
 
@@ -45,13 +45,13 @@ I consider valgrind to be the most essential correctness test, after "my code se
 Until recently, my strategy to debug code that aims to work on a microcontroller has been to code it in pure-C (no assembly) and to make it somehow work in a userspace process.
 That allowed me to debug it using gdb and valgrind.
 
-Though this strategy works for abstract pieces of the kernel (not dependent of the actual hardware, ex : file-system, scheduler, resource tracking, etc...), this is hardly achievable for hardware-dependent ones, like drivers.
+Though this strategy works for abstract pieces of the kernel (not dependent on the actual hardware, ex : file-system, scheduler, resource tracking, etc...), this is hardly achievable for hardware-dependent ones, like drivers.
 One could think that we could just write an emulator of some sort and again run the driver in an emulated way.
-This works but will only give the coverage on the behavior that the emulator supports. Failure to emulate an HW feature will lead to lack of actual coverage on that feature when ran in real HW. 
+This works but will only give coverage on the behavior that the emulator supports. Failure to emulate an HW feature will lead to lack of actual coverage on that feature when run in real HW. 
 
 The best coverage we can get is to test the code under real operation conditions.
 
-To achieve that, we need our favorite debug tools to work in embedded platforms.
+To achieve that, we need our favorite debug tools to work on embedded platforms.
 
 # Let's make enemies
 
@@ -68,10 +68,10 @@ But what if we must debug the kernel itself ? What if the UART isn't even availa
 What if we are doing the bringup of the chip, i.e. testing boot / reset ? You won't get any printf at that stage.
 
 Stating that you can always debug using printf is absurd to the extent that, if you have access to a form of printf, you are potentially running your code in an environment like the Arduino framework.
-I can guarantee you that the people that developped this framework had some form of probe to debug the chip.
+I can guarantee you that the people that developed this framework had some form of probe to debug the chip.
 When their programming and verification was done, they designed a board without this interface and sold it to you.
 
-Comming back to the previous statement.
+Coming back to the previous statement.
 
 This barely works for simple software, at the cost of bisecting the code, but becomes a nightmare when you deploy complex software that, for example, does memory allocation.
 
@@ -79,27 +79,24 @@ If the answer to that last statement is :
 
 ```Code on a microcontroller should only be running simple software with statically allocated memory```
 
- this is not a satisfactory answer either. 
+This is not a satisfactory answer either. 
 
 Modern microcontrollers (whose name should likely be reviewed) operate at the megahertz scale, and can have around one MiB of flash or RAM.
-This is the very definiton of "potential to run complex software".
+This is the very definition of "potential to run complex software".
 
-Rather, that answer is merely a consequence of the lack of proper debugging tools widely available in the mainstream embedded world, and of the lack of knowledge around it : developpers took the lack of proper debugging infrastructure as an immutable truth and their practices evolved in that direction, validating that assumption.
+Rather, that answer is merely a consequence of the lack of proper debugging tools widely available in the mainstream embedded world, and of the lack of knowledge around it : developers took the lack of proper debugging infrastructure as an immutable truth and their practices evolved in that direction, validating that assumption.
 
-But is is not an immutable truth.
+But it is not an immutable truth.
 To be more precise, it is completely and utterly false.
 
-This series of article aims to prove that running your code in a microcontroller environment gives you a leverage to actually perform memory checking of the same or even better quality than one available in a typicall userspace process.
+This series of articles aims to prove that running your code in a microcontroller environment gives you a leverage to actually perform memory checking of the same or even better quality than one available in a typical userspace process.
 
 # Disclaimer 
 
-The `KASAN` implementation presented in this series is not open-source nor free, and this series of article is not a tutorial on how to use such code.
+The `KASAN` implementation presented in this series is not open-source nor free, and this series of articles is not a tutorial on how to use such code.
 This is mostly due to two factors :
-- a `KASAN` is tightly coupled to the kernel that it is implemented in. My kernel being closed source, such is my `KASAN`.
+- a `KASAN` is tightly coupled to the kernel that it is implemented in. As my kernel is closed source, such is my `KASAN`.
 - I'm not a very nice guy :).
-
-Though, to illustrate my points and give implementation details, I'll sometimes provide code samples.
-For all intents and purposes, I declare this code as part of the public domain.
 
 Rather, it aims to give a solid base for whoever wants to add a `KASAN` to their kernel, so that when executing the following piece of code :
 
@@ -138,3 +135,5 @@ Incompatible attributes are :
   ACCESS_ALLOCATOR | NO ACCESS_USER
 ```
 
+Though, to illustrate my points and give implementation details, I'll sometimes provide code samples.
+For all intents and purposes, I declare this code as part of the public domain.

@@ -1,7 +1,7 @@
 languageCode = "en"
 languageName = "English"
 weight = 1
-title = "Embedded Garage"
+title = ""
 
 [params]
   displayName = "EN"
@@ -16,7 +16,7 @@ title = "Embedded Garage"
 [author]
 name = "Raphael Outhier"
 #   image = "img/blowfish_logo.png"
-headline = "I like cool projects"
+headline = "I write and debug stuff to debug stuff."
 bio = "Kernel engineer"
    links = [
      { email = "mailto:raphael.outhier@gmail.com" },
