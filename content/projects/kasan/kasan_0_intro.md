@@ -71,10 +71,6 @@ Stating that you can always debug using printf is absurd to the extent that, if 
 I can guarantee you that the people that developed this framework had some form of probe to debug the chip.
 When their programming and verification was done, they designed a board without this interface and sold it to you.
 
-Coming back to the previous statement.
-
-This barely works for simple software, at the cost of bisecting the code, but becomes a nightmare when you deploy complex software that, for example, does memory allocation.
-
 If the answer to that last statement is :
 
 ```Code on a microcontroller should only be running simple software with statically allocated memory```
