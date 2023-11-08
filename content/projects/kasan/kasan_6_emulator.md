@@ -8,7 +8,7 @@ categories: ["KASAN"]
 showSummary: true
 date: 2023-09-27
 showTableOfContents : true
-draft: false
+draft: true
 ---
 
 As stated in the previous sections, to verify our accesses, we will use the MPU to blacklist all the RAM minus the stacks, which will make any access to these instructions trap.

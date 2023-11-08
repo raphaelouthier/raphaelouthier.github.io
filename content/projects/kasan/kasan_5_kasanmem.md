@@ -8,7 +8,7 @@ categories: ["KASAN"]
 showSummary: true
 date: 2023-09-27
 showTableOfContents : true
-draft: false
+draft: true
 ---
 
 Now that we know how the kernel manages memory from a high level point of view, let's elaborate on how the KASAN will fit in this system.

@@ -8,7 +8,7 @@ categories: ["KASAN"]
 showSummary: true
 date: 2023-09-27
 showTableOfContents : true
-draft: false
+draft: true
 ---
 
 Before elaborating on how the memory checker will actually check memory accesses, we need to elaborate on how memory is managed by the kernel in a microcontroller, or more generally, in a systen without an MMU.
