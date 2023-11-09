@@ -11,14 +11,14 @@ showTableOfContents : true
 draft: false
 ---
 
-# Foreword
+## Foreword
 
 This series of articles will focus on how to implement a `KASAN` (or a memory access checker) on a microcontroller kernel.
 
 The introduction is a reflection of my personal opinions and of the motivations that lead me to implement my `KASAN`.
 The reader may find it cleaving, but they should find the rest of the article more technically oriented.
 
-# The need for a proper debug infrastructure.
+## The need for a proper debug infrastructure.
 
 Recently my wonderful wife designed and offered me the greatest present a kernel developer could imagine : a custom development board with a builtin `SWD` interface.
 
@@ -53,7 +53,7 @@ The best coverage we can get is to test the code under real operation conditions
 
 To achieve that, we need our favorite debug tools to work on embedded platforms.
 
-# Let's make enemies
+## Let's make enemies
 
 The opinion in the embedded world seems to be
 
@@ -87,7 +87,7 @@ To be more precise, it is completely and utterly false.
 
 This series of articles aims to prove that running your code in a microcontroller environment gives you a leverage to actually perform memory checking of the same or even better quality than one available in a typical userspace process.
 
-# Disclaimer 
+## Disclaimer 
 
 The `KASAN` implementation presented in this series is not open-source nor free, and this series of articles is not a tutorial on how to use such code.
 This is mostly due to two factors :

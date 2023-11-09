@@ -18,7 +18,7 @@ The only features needed for the KASAN to theoretically work are :
 - an exception handling mechanism.
 - an `MPU`.
 
-# The chip
+## The chip
 
 {{< figure
     src="images/kasan/board.jpg"
@@ -38,7 +38,7 @@ The devboard that my dear wife made for me has :
 
 The `MPU` is the main component on which our KASAN implementation will be based. It is a needed feature.
 
-# Execution privileges
+## Execution privileges
 
 A processor implementing the `ARMV7M` architecture has two levels of privileges : 
 - unprivileged mode : code running in this privilege level has limited access to the processor system registers.
@@ -48,7 +48,7 @@ In particular, the CPU starts in privileged mode at reset. Then, it is up to the
 
 Code running in unprivileged mode can do a system call to execute a system handler. This handler will execute in privileged mode. The actual function that will be executed can't be programmed by unprivileged software.
 
-# Stacks
+## Stacks
 
 A processor implementing the `ARMV7M` architecture supports two different stacks :
 - the Main Stack, used in `handler mode`. Stack pointer : `MSP`
@@ -56,7 +56,7 @@ A processor implementing the `ARMV7M` architecture supports two different stacks
 
 The `MSP` / `PSP` are aliased to `SP`. Accessing `SP` actually accesses the stack pointer active in the current mode (thread or stack).
 
-# Exceptions
+## Exceptions
 
 A processor implementing the `ARMV7M` architecture supports the notion of exception : code running at a given time can be temporarily stopped, for another piece of code (a handler) to be executed instead.
 
@@ -103,7 +103,7 @@ When an exception A is triggered, the processor determines the priority of A, so
 If A is enabled and has a greater priority than B (or if the processor is not currently executing any exception), the current execution context is saved in the local stack (either Main Stack or Process Stack) by the hardware, and the handler of A executed.
 When the handler of A is complete (when it returns), the processor detects it, and restores the execution context saved on exception entry. Then, the execution of B (or thread code) continues transparently.
 
-# Context
+## Context
 
 The `ARMV7M` context is composed of 
 - general purpose registers : 
@@ -119,7 +119,7 @@ The `ARMV7M` context is composed of
 - Status registers : 
 	`xPSR` : composite of all status registers, see the `ARMV7M` ARM for more details.
 
-# Context saving and exception
+## Context saving and exception
 
 Saving the execution context means atomically storing a subset of the context registers to the currently used stack (Main / Process).
 Restoring the execution context means atomically loading a subset of the context registers from the stack, and as such, updating the state of the processor.
@@ -153,7 +153,7 @@ Please refer to the ARMV7M Architecture Reference Manual for an exact descriptio
 
 If after a context save, the stored value of a register is modified, the modified value will be loaded in the register during context restore. This will be the base trick on top of which we will build our emulator.
 
-# `MPU`
+## MPU
 
 The `ARMV7M` features an optional `MPU`, always implemented in the CortexM7.
 

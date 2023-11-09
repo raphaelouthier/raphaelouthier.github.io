@@ -11,7 +11,7 @@ showTableOfContents : true
 draft: false
 ---
 
-# Introduction
+## Introduction
 
 
 This article will state the theoretical base on memory checking required to understand how the KASAN checks its access.
@@ -22,9 +22,9 @@ Disclaimer : I have no prior experience with the internals of existing memory ch
 
 Let's first define the base concepts.
 
-# Terminology 
+## Terminology 
 
-## Definitions
+### Definitions
 
 - `Memory location` : location in CPU memory accessible by address.
 - `Memory access operation` : read or write to a memory location.
@@ -35,13 +35,13 @@ Let's first define the base concepts.
 
 Checking a memory operation means intercepting that memory operation in `some way` before it occurs, then verifying that the said memory operation is `valid`, then if so, allowing the operation to complete.
 
-## Consequences
+### Consequences
 
 - A register is not a memory location. 
 
 - Accessing a register is not a memory access.
 
-## Subset
+### Subset
 
 The *subset* of memory operations that the memory checker checks can include all memory operations or an actual subset.
 
@@ -49,7 +49,7 @@ Examples of hypothetical checkers that would meaningfully check a small subset o
 - a memory checker could check only allocation and free (and related) operations, to ensure that no double free (by the user) or double alloc (by the allocator) is done.
 - a memory checker could check only memory reads and track memory writes, to ensure that software only reads from initialized (written before) locations.
 
-## Validity of an operation 
+### Validity of an operation 
 
 `Valid memory operation` : an operation that philosophically makes sense, given the paradigms of the program.
 
@@ -79,20 +79,20 @@ Memory management operations like `malloc` and `free` are regular functions with
 
 Those accesses are not made using a function code, they are made using actual assembly operations, and there is no easy way to just 'override' those instructions.
 
-# Intercepting memory accesses : transpiling and why we cannot
+## Intercepting memory accesses : transpiling and why we cannot
 
-## Transpiling
+### Transpiling
 
 A potential strategy to intercept memory access operations is to transpile the program : the memory checker will disassemble the assembly code and replace all memory access operations with assembly stubs to instead call the memory checker's entrypoints, or just do the checking in place.
 
-## Cost
+### Cost
 
 - this is a very tricky operation, as for example, the jump addresses / offsets have to be carefully updated.
 - this has a significant impact on :
 	- the code size, as a single memory access assembly operation is converted to a sequence of assembly operations.
 	- the code performance, as every access will have to be checked.
 
-## Applicability for microcontrollers
+### Applicability for microcontrollers
 
 This strategy could theoretically work for a microcontroller code, but we have to consider the impact on code size very seriously.
 
@@ -112,9 +112,9 @@ To implement a KASAN on such a device, we need to have a solution that is taking
 
 This will be the subject of two other chapters.
 
-# Memory operation subset, and limitations
+## Memory operation subset, and limitations
 
-## Variability in complexity
+### Variability in complexity
 
 In the introduction I mentioned that the memory checker was checking a subset of the memory operations.
 
@@ -126,7 +126,7 @@ A trivial example is memory access operations vs allocation / free operations. I
 
 Though, as we said earlier, checking actual memory accesses is non-trivial as involves directly working with the assembly, either directly as described in the transpiling section, or indirectly, as it will be described later for our implementation.
 
-## Stack and non-stack (heap or globals section)
+### Stack and non-stack (heap or globals section)
 
 Another example showing the variation in complexity between check operations can be found by thinking how we would check local variables as opposed to allocated variables.
 

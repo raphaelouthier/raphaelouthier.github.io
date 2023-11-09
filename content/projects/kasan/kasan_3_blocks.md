@@ -13,9 +13,9 @@ draft: false
 
 This chapter will describe the basic principles of operation of the KASAN. 
 
-# Structure
+## Structure
 
-## Base
+### Base
 
 The previous chapters laid the foundations on which we will build the KASAN :
 - we cannot use any transpiling-oriented method to wire our KASAN to the executable due to potential code size increase.
@@ -23,7 +23,7 @@ The previous chapters laid the foundations on which we will build the KASAN :
 - the handler of this MemManage fault can modify execution context (registers) of the program that caused the memory access, and update its execution flow.
 - the MemManage fault handler gives us the location of the fault, so as the address of the instruction that generated the fault.
 
-## Memory checker execution flow 
+### Memory checker execution flow 
 
 To implement our KASAN, we will first use the `MPU` to disable access to the whole RAM region.
 
@@ -55,7 +55,7 @@ When this is done, it will re-enable the KASAN `MPU` regions, reload the SW-save
 
 Then, the processor will restore the HW saved context (possibly updated by the emulator since it was saved), and give control back to the interrupted thread, but at the instruction after the one that just trapped and got emulated.
 
-## Summary
+### Summary
 
 The following diagram summarizes the high level behavior or the KASAN.
 
@@ -63,9 +63,9 @@ TODO : summarize initialization sequence.
 
 TODO : summarize validation operation.
 
-# Design notes 
+## Design notes 
 
-## Whitelisting the stacks
+### Whitelisting the stacks
 
 In order for our `MPU`-based trap system to work, we need to add two other `MPU` regions, with a greater priority than the RAM blacklist region, to allow access to the user and exception stack (PSP, MSP). 
 
@@ -76,7 +76,7 @@ This is not what we want, as it has different privileges, and less recoverabilit
 
 This increases to 3 the number of `MPU` regions necessary to implement our KASAN.
 
-## Disabling `MPU` regions in the MemManage fault handler
+### Disabling MPU regions in the MemManage fault handler
 
 The KASAN memory access checker will run in the MemManage fault handler.
 
@@ -91,7 +91,7 @@ To handle this situation, we will need to reprogram the `MPU` when we enter and 
 
 On entry, we will disable the regions related to KASAN, and on exit, we will re-enable them.
 
-## KASAN regular entry
+### KASAN regular entry
 
 The next chapters we will talk about how to manage the KASAN memory attributes, and in particular, how those memory attributes are updated when an allocator allocates or frees a memory block. The allocators will need to call a KASAN entrypoint to verify that the attribute change is valid, and to perform it.
 
@@ -118,7 +118,7 @@ As such, if we plan to have memory management code that runs on `Unprivileged mo
 
 We could have a dedicated syscall in the kernel to handle those cases. But then we would have to have two paths, for code that is already privileged, and for code that is not.
 
-## A single KASAN entrypoint
+### A single KASAN entrypoint
 
 There is a more clever way.
 
