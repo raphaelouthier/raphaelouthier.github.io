@@ -1,0 +1,106 @@
+
+/*********************
+ * Kasan constraints *
+ *********************/
+
+- need to disable MPU to access kasan attributes -> disable MPU kasan blacklist on entry.
+	-> kasan calls to modify attributes must also use that
+	-> one way is to cause a memfault at a registered location and check the PC.
+
+- know the kernel executable layout 
+
+- need the MPU enabled during ealry stages of boot to catch kasan calls.
+
+- need the NVIC enabled during early stages of boot route to the correct handler
+
+- Can't update SP in instruction emulation, as SP is not in the context switched registers.
+
+- Can't write the stack in instruction emulation, as it may overwrite the context-save regs.
+
+
+Kasan war stories to talk about : 
+- forgot to push r4 before ldr r4, [sp] in kasan call
+-> lead to some random memory corruption.
+
+- how to format an interrupt handler properly for gdb to unwind correctly.
+	-> adjust stack pointer on top.
+	-> store registers
+	-> avoid any weird sp op.
+	-> after header, NEVER manipulate sp again.
+
+- how to retrieve SP (read only)
+
+- decoder :
+  - arm spec is shit : 
+    - fields are declared by iclass
+    - encodings use the instruction class but add stuff
+    - the encodings can partially define values 
+      -> no consistency, sometimes 'x' sometimes ''.
+      -> fields are grouped (imm3:imm2) by contiguous blocks.
+    - there is _NO_ way to determine procedurally how compound values (const) are built.
+
+  - we need to check for BOTH : 
+    - knwon bits [01].
+    - fields where at least one bit must differ ([SC] / [ZN] (seriously guys, Z/N, WFT, one means ZERO and the other NULL, what the fuck)
+
+IT blocks : when we update the PC, we must also shift the IT flags in the saved CPSR.
+
+MPU race condition with RBAR.RGN/VALID : SETS THE REGION BUT ALSO THE BASE ADDRESS.
+-> WHEN DISABLING A REGION USING THIS METHOD, THIS UPDATES THE BASE ADDRESS OF THE PROTECTED REGION
+	-> IF THE REGION IS A BLACKLIST, THERE IS A WINDOW WHERE WE MAY ACCESS THE MEMORY THAT HAS BEEN BLACKLISTED>
+
+
+Write issue : 
+
+> 0x800b40a <km_bud_alloc_blk+74>:	str	r3, [r2, #0]
+   0x800b40c <km_bud_alloc_blk+76>:	str	r2, [r3, #4]
+
+r2             0x20002a00          536881664
+r3             0x30035178          805523832
+
+[KSN] processing instruction STR r3, [r2 {, #{+} <imm>} ]
+reg read32 'r2' : 0x20002a00
+lsl_32 0x0, 2 : 0x0
+add_32 0x20002a00, 0x0 : 0x20002a00
+reg read32 'r3' : 0x30035178
+mem write_32 addr:'0x20002a00' : val:'0x30035178'
+
+(gdb) p/x *(u32 *) 0x20002a00
+$1 = 0x30044fbc ????
+
+CAUSE : 
+/*
+ * Generate code to write to a memory location.
+ */
+#define gp_emu_mem_writer(n) \
+static inline void gp_emu_mem_write_##n( \
+	gp_emu *emu, \
+	gp_emu_mem mem, \
+	u##n val \
+) \
+{ \
+	assert(!(mem & GP_EMU_ALIGN_##n), "Unaligned "#n" bits write at '%p'.\n", mem); \
+	gp_emu_log("mem write_"#n" addr:'%h' : val:'%"GP_FMT##n"'\n", mem, val); \
+	(*(emu->emut->mem_read_##n))(emu, mem); \ <====== LOL
+}
+
+
+To debug kasan, time should be disabled.
+
+LDREX / STREX need a dedicated exclusive monitor.
+
+
+STACK OVERFLOWS AND KASAN : 
+- kasan adds stack consumption on the kernel stack
+	-> bad for stack overflows
+	-> can be detected using stack guards.
+	-> issue is : stack guard is written to in kasan, exception (hardfault/memfault)
+			will occur
+		-> processor will write to the stack
+		-> will trap again
+			-> PC will never be pushed to stack
+			-> gdb will never show the backtrace.
+
+Bad stack unwinding when entering kasan
+	-> need to avoid function inside function, causes the debugger to incorrectly
+       unwind the stack.
