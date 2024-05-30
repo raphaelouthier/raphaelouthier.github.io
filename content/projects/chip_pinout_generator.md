@@ -49,7 +49,7 @@ It simply cannot allow all peripherals to be used at the same time.
 
 How is this not a problem then ? Well, simply because typical applications do not use all those peripherals.
 
-Thanks to this, MCU manifacturers like ST have come up with a reasonable approach that we'll call pin multiplexing : every pin of the package is internally connectable to multiple signals (but to at most one at a time). The GPIO driver has to configure which alternate function (which index of each pin's multiplexer) is used. This is one of the first duties of any communication (USB, UART, etc...) device driver of such a chip's : configure the pin multiplexing so that the signals used by the driven device are actually connected to the chip's pins. Then it can do other fun(damental) things like configuring the clocks and generating kernel panics.
+Thanks to this, MCU manifacturers like ST have come up with a reasonable approach that we'll call pin multiplexing : every pin of the package is internally connectable to multiple signals (but to at most one at a time). The GPIO driver has to configure which alternate function (which index of each pin's multiplexer) is used. This is one of the first duties of any communication (USB, UART, etc...) device driver of such a chip : configure the pin multiplexing so that the signals used by the driven device are actually connected to the chip's pins. Then it can do other fun(damental) things like configuring the clocks and generating kernel panics.
 
 The multiplexer can be large though. For ST's H7 line, it is 16 entries wide, meaning that each pin can be internally connected to at most 16 signals.
 
@@ -84,7 +84,7 @@ Now, if you think about it, I could just have try-and-errored in kicad until I f
 
 As a matter of fact, I did try that. And it gets old. Veeeeeeryyyyyy quickly.
 
-That's mostly because if you think about it for a moment, there are a LOT of possible combinations : let's imagine that we know exactly every peripheral that we need (forget the M among N-s in the previous list), and that we have 16 of them. Every one of them has 4 pins, and each pin can be routed to 2 pins. We litterally have 64 pins that each have two possible values, which makes a total of 2^64 possible configuration.
+That's mostly because if you think about it for a moment, there are a LOT of possible combinations : let's imagine that we know exactly every peripheral that we need (forget the M among N-s in the previous list), and that we have 16 of them. Every one of them has 4 signals, and each signal can be routed to 2 pins. We litterally have 64 pins that each have two possible values, which makes a total of 2^64 possible configuration.
 
 And that's a lot. More than what your computer can index.
 
@@ -92,24 +92,120 @@ And doing that manually can be very long.
 
 So after the first evening of failed attempts with the donk-ish manual way, I told myself it would be great to use the few remaining connected neurons to at least code something to accelerate the process.
 
+## Objective
+
+With a given problem (certain peripherals to select) there could be a lot of possble solutions.
+
+The objective of the algorithm will not be to find all solution, not because it would be a bad idea, but simply because it would potentially consume all disk space on the machine.
+
+In fact, as the reader will see, the resolution method contains the procedure to find all possible solutions. It is just that in most cases, finding just one solution is enough.
+
+Thus, the objective of the algorithm will be to find one solution. If for some reason, that solution is not what the user expects, then the algorithm will easily find the next possible solutions.
+
 ## The expected output
 
-Ideally, we want to structure our kicad design schematic like this : 
+Ideally, we would like to be able to iteratively test multiple solutions for the same problem, in the same design.
+
+To do that, we would like our algorithm to modify the connections in our kicad schematics.
+
+This is not doable per-se, but can be accomplished by structuring our kicad schematics like the following : 
 - the microcontroller only has labels connected to its GPIO pins.
 - all the hardware connected to the GPIO pins (USB physical layer, ethernet PHY chip, UART connectors, etc...) only has labels connected to its signal pins.
 
 Then, the only remaining thing is for our algorithm to generate a label associative array that for each GPIO pin of the microcontroller, connects to a hardware label, or to nothing if the pin is not used.
 
+Luckily, kicad uses text-based representations for the schematic components of a design, which allows us to copy-paste them. We will use that in a hacky manner, and make our algorithm generate the text representation of a label connection array.
+
+We will then copy paste that into kicad's schematics editor and that will be it.
+
 TODO pictures.
 
-## The solution
+## Numerical complexity
+
+There are two factors that cause the numerical complexity of the problem to exponentially increase : signals being connected to multiple pins, and us wanting to choose "K peripherals in a set of N".
+
+Let's formally establish the number of possible combinations that we should theoretically test.
+
+First, each signal `sig` can be connected to multiple pins `pin_nb(sig)`.
+
+Each peripheral `per` uses the set of signals `per_sigs(per)`.
+
+Then, for each group `grp` (ex UART) of peripherals that we must use, we have `per_nb(grp)` peripherals availble for that group and we must pick `chosen_nb(grp)` in that group.
+
+Each group `grp` has `per_nb(grp) choose chosen_nb(grp)` possible configurations, with `n choose k = n! / (k! * (n - k)!)`.
+
+Each configuration uses the set of peripherals `cfg_pers(cfg)`.
+
+The total number of possible combinations to test can be written the following way : 
+
+`N = PROD(grp in grps){ SUM(cfg in cfgs(grp)) { PROD(per in cfg_pers(cfg)) { PROD(per_sigs(per)) {pin_nb(sig)} } } }`
+
+Theoretically, we could just iterate over all those combinations, check if each is valid, and stop at the first valid one.
+
+Though, if our model has a lot of peripherals with a lot of signals, we could iterate over a lot of combinations before finding a valid one.
+
+In order for that search to be quicker, there are a few optimizations that we can do. During the development of this project, I was using a template design / peripheral selection as an example, and those optimizations made the number of potential solutions go from more than 2 ^ 64 to actually 16.
+
+Not 2 ^ 16. I actually mean 16 combinations to try.
+
+## Algorithmic data structures
 
 The first thing we must do is translate the pin multiplexing array in the microcontroller's doc into a machine readable text file that our algorithm will process.
 
 That is long and painful, but trust me, it's worth it. It is very likely that all chips in the same family (ST's H7 for example) share the same multiplexing layout, so you may not have to do that frequently.
 
+Then we can read this file, and build a graph-like in-ram data structure, where :
+- each group references its possible configurations (k choose n)
+- each configuration references its peripherals.
+- each peripheral references its signals.
+- each signal references its pins.
+
+Here one must note : 
+- each configuration is part of one and exactly one group.
+- each peripheral can be referenced by multiple configurations of the same group. (A)
+- each signal is part of one and exactly one peripheral.
+- each pin can be referenced by multiple signals. (B)
+
+A and B are the two factors that were previously mentioned to make the complexity explode.
+
+Those are the places where we must optimize things, by reducing the exploration space. Though, we cannot afford to remove a potential solution for the sake of speed. We must ensure that we only remove invalid configurations from the exploration space.
+
+## Peripheral types.
+
+In the next sections, when the expression "for exploration purposes" or "FEP" is used, it means "given the current optimizations we found for the exploration". For example, a signal S can be connectable to a pin P, that is guaranteed to be connected to another signal in every valid combination. In this case, S will be considered disconnected from P for exploration purposes.
+
+First, we can note that some peripherals are optional and some are mandatory :
+- if a peripheral is part of a group where all peripherals will be chosen (FEP) (i.e. we choose N peripherals in a set of N, which is equivalent to having a group for each) then it is mandatory (FEP), in the sense that if a valid combination exists, this peripheral will be part of it.
+- otherwise, the peripheral is optional FEP in the sense that if a valid combination exists, it may or may not be part of it.
+
+If a peripheral is mandatory, then we can start to optimize its signals.
+
+## Simplifying the graph.
+
+If a peripheral is mandatory, so are its signals. That means that if such a signal S can only be connected to one pin P, then it _must_ be connected to it.
+
+Other signals of other peripherals connected to this pin can just be considered not connected to it for exploration purposes, since if there is a valid configuration, S will be connected to P.
+
+If a  signal is found to be connected to no pin for exploration purposes (i.e all its possible pins are known to be connected to other signals), it means that the related peripheral cannot be present in the final solution. If the peripheral is mandatory, then no solution exists.
+
+If the peripheral is optional, then we can remove it from the exploration space (i.e. from the graph). This has two consequences.
+
+First, every signal that we remove removes a connection to the pin that it was previously connected to. This potentially creates new pins with a single connection and we can re-apply the first optimization pass.
+
+Then, every peripheral that we remove is optional, and thus, is part of a group where we chose K peripherals among N, with K < N. Removing the peripheral reformulates the problem, by forcing us to choose K peripherals among `N - 1` peripherals.
+
+If `K == N - 1`, then all remaining peripherals become mandatory, and we can optimize them all using the previous passes.
+
+If `K < N - 1`, then all remaining peripherals are still optional.
+
+In order to simplify the exploration space, we apply this procedure repeatedly to the graph, until it leaves the graph unaffected.
+
+Then, we can bruteforce the graph by testing the validity of all remaining combinations.
 
 
+TODO : describe the pass where a pin connectable to only one signal becomes connected to this signal for exploration purposes -> this removes connections from this signal to every other pin.
+
+TODO describe the pathological cases
 
 
  
