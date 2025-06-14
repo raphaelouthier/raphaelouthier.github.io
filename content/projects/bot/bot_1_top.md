@@ -27,31 +27,31 @@ At first glance, we can identify three main groups :
 - connector components : those components bridge the gap between the trading bot which is simple and self contained by design, and the complex protocols that either remote provider or remote brokers require to communicate. They will likely use libraries provided by the providers or brokers, and hence, we cannot infer anything in the language that they use. We only need to standardize the way they communicate with the trading bot. In practice, connector components will be running in their own processes, and will communicate with the trading bot via either unix sockets or named pipes, using a simple packet-based protocol.
 
 
-In reality, since most data providers support rest-ful APIs, the trading bot executable uses urllib in the provider interface to avoid the need of a provider connector for performance reason. The broker connector will be present though, as interacting with remote brokers is complex and is usually done via libraries provided by the brokers themselves. Also in this case, performance does not really matter.
+In reality, since most data providers support rest-ful APIs, the trading bot executable uses curllib in the provider interface to avoid the need of a provider connector for performance reason. The broker connector will be present though, as interacting with remote brokers is complex and is usually done via libraries provided by the brokers themselves. Also in this case, performance does not really matter.
 
 Let's now take a look at the fundamental concepts behind this rather convoluted design.
 
 ## Strategies
 
-The term strategy will be used to describe the process of looking in past/present data for a set of conditions to be met, and of making a set of investment decisions based on that fact.
+The term strategy will be used to describe the process of looking in past/present data and identify when a set of conditions to be met and make a set of investment decisions based on that fact.
 
 Some simple examples are :
-- statistical correlation between an instrument's current value and another's past value :
+- statistical correlation between an instrument's current value and another instrument's past value :
   - stock A gained 5% between one day ago and now, we buy stock B. If stock B gains more than 5%, or looses more than 1%, we sell, 
 - arbitrary rule based on local variations of a single instrument :
   - stock A lost 5% of its value, we buy A. If it regains more than 3 ppts or looses 2 more ppts, we sell.  
 
 We want the strategies ran by the bot to be :
-- dynamic : act based on different strategies, have the ability to add a new strategy without rewriting the whole bot.
-- backtestable : the quality of a strategy is determined by reality. Before adding a new strategy, it should be backtested to verify if it would have been profitable even in the recent past.
-- adjustable : strategies may become more or less profitable with time. When trading based on a given strategy, we must verify its profitability and be able to stop using it if it becomes non/not-enough profitable. 
+- **dynamic** : act based on different strategies, offering me the ability to add a new strategy without rewriting the entire bot.
+- **backtestable** : the quality of a strategy is determined by how much money it can make in reality. Before adding a new strategy, it should be backtested allowing me to verify if it would have been profitable in the recent past.
+- **adjustable** : strategies may become more or less profitable as time passes and market conditions evolve. When trading a given strategy, we be abke to track its profitability and be able to scale it's usage based on it's profitablity. 
 
 Internally, a strategy is characterized by three things : 
-- a target instrument that it will buy or sell.
-- a detector, which reads historical data from the past and present and detects certain conditions (ex : an increase of more than X% in a given stock price). Upon detection, it makes a prediction on the future return on investment that buying the target instrument now will generate.
-- trading parameters, which upon detection, describe the process of buying the target instrument, and monitoring its price evolution in order to detect when it should be sold.
+- a **target instrument** that it will buy or sell.
+- a **detector**, which reads historical data from the past and present and detects certain conditions (eg : an increase of more than X% in a given stock price). Upon detection, it makes a prediction on the future return on investment that buying the target instrument now will generate.
+- **trading parameters**, which upon detection, describe the process of buying the target instrument, and monitoring its price evolution in order to detect when it should be sold.
 
-Detectors can vary a lot and do characterize the implemented strategy.
+Detectors can vary a lot and characterize the implemented strategy.
 
 Trade sequences are very similar accross different strategy : they invest a certain amount of money in the target instrument, and wait for certain conditions to be met to sell them.
 
@@ -63,15 +63,16 @@ Since buying and selling is a rather critical part of the trading bot, it is acc
 
 The trading bot manipulates different resources, tracked by a library called the portfolio.
 
-The first one and most obvious one is money, which comes into different currencies. The wallet (sub-lib of the portfolio) tracks every money depot available to the trading bot.
+The first one and most obvious one is money, which comes in different currencies. 
+The wallet (sub-lib of the portfolio) tracks every money depot available to the trading bot.
 
 Then, there are instruments, like stocks, options, which can be traded. One could argue that currencies can also be traded, a totally acceptable nuance, that I'll happily ignore as my implementation is not targetting currency trading. But that would be a valid point and I have not given enough thought on how/if it would change the portfolio design.
 
-It is likely that the broker offers us ways to query our trading account's resources list. Although, I made the choice of not relying on the broker's info, as I wanted to support multiple bots using the same brokerage account. In this case, there would be no way for bot A and B to know which resources of the brokerage account are allocated to each other. 
+In practive, it is likely that the broker offers us ways to query our trading account's resources list. Although, I made the choice of not relying on the broker's info, as I wanted to support multiple bots using the same brokerage account. In this case, there would be no way for bot A and B to know which resources of the brokerage account are allocated to each other. 
 
 ## Consistency, fault tolerance, and on-disk portfolio storage
 
-Since the previous section argued in favor of each bot having its own portfolio and resource management, 
+Since the previous section argued in favor of each bot having its own portfolio and resource management, <- ?? 
 
 I made the choice of relying heavily on file system import and export to save the state of the poftfolio, while also ensuring fault tolerance.
 
