@@ -13,15 +13,15 @@ draft: true
 
 This series of articles will describe the structure of a low frequency trading bot supporting dynamic, adjustable and backtestable investment strategies, a project that I have been working on for two years in the hope that some day, I could just start it in the morning and watch it printing money while I drink coffee. Or contemplate it burn all my savings in 10 minutes.
 
-This chapter will state the necessary precautions, state the objectives of the trading bot, its limitations, their consequences on the implementation.
+This chapter will cover the necessary precautions, state the objectives of the trading bot, its limitations, the impact of these on the implementation.
 
-For a technical description of the trading bot, please refer to part 1.
-
+For a technical description of the trading bot, please refer to part 1 of this series.
+ 
 ## Disclaimers
 
 ### Open-source
 
-I am legally bound by my company (Apple) to not publish open source code in any form.
+I am legally bound by my company ({{< icon "apple" >}}) to not publish open source code in any form.
 
 Though, I am legally free to write about my personal projects.
 
@@ -41,16 +41,16 @@ For what it's worth, none from those companies even knows that this website exis
 
 I am a kernel developper, and as such, I am proficient in using C.
 
-It is not by disregard for other languages : I started programming with python as a teenager, then studied java in classes, discovered C++ with embedded (Arduino) development and then quickly moved to C after I decided to stop using third party code and to just reimplement everything on bare metal.
+It is not by disregard for other languages : I started programming with python as a teenager, then studied java in classes, wrote quite a lot of C++ with embedded (Arduino) development and then moved to C after I decided to stop using third party code and to just reimplement everything on bare metal.
 
-C++ could have been a valid choice to implement my trading bot, but I generally try to stick with C when possible, as it is reasonably closer to the machine (and hence, offers you more perf if needed).
+C++ could have been a valid choice to implement my trading bot, but I generally try to stick with C when possible, as it is closer to the machine and hence, offers you more control, resulting in more perf if needed.
 
 ### Third party libraries
 
 One of my general rules is to reimplement everything I use when possible and relevant. That is to make my code as portable as possible, and to have the best understanding of what my code does. You can assume that the entirety of the trading bot implementation (including the basic design patterns like trees, maps, lists, many functions of the standard library like formatted print and decode, etc...) is made from scratch, with a few exceptions that are worth mentioning : 
-- OS interface layer : to be able to use kernel-managed resources.
-- curl : data providers like polygonio provide rest-ful APIs to query the actual data. This implies that you must either use libraries like curl or re-code them yourself, which was definitely out of this project's scope. It kinda did hurt, but I installed libcurl...
-- broker APIs : brokers like interactive brokers saw the automatic trading trend coming and created dedicated libraries to allow you to procedurally do brokerage-related actions like create and manage orders, get your portfolio composition, etc... Those libraries are rather complex and recoding them in pure C would be too risky (order passing is sensitive !) and useless. The broker chapter will discuss the way to have a pure C self-contained code interact properly with those brokerage systems.    
+- **OS interface layer** : to be able to use kernel-managed resources, eg : files, sockets
+- **curl** : data providers like polygonio provide rest-ful APIs to query the actual data. This implies that you must either use libraries like curl or re-code them yourself, which was definitely out of this project's scope. It kinda did hurt, but I installed libcurl...
+- **broker APIs** : brokers like interactive brokers saw the automatic trading trend coming and created dedicated libraries to allow you to procedurally do brokerage-related actions like create and manage orders, get your portfolio composition, etc... Those libraries are rather complex and recoding them in pure C would be too risky (order passing is sensitive !) and useless. The broker chapter will discuss the way to have a pure C self-contained code interact properly with those brokerage systems.    
 
 ## Introduction
  
