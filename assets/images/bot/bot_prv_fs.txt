@@ -1,0 +1,37 @@
+  Offset        Description    Data                      
+┌────────────┬──────────────┬───────────────────────────┐
+│            │              │                           │
+│            │              │  Marketplace              │
+│  0         │  Descriptor  │  Symbol                   │
+│            │              │  Total number of minutes  │
+│            │              │                           │
+├────────────┼──────────────┼───────────────────────────┤
+│            │              │  Sync data access lock    │
+│ PG_SIZ     │  Sync data   │  Write flag               │
+│            │              │  *Fill counter            │
+├────────────┼──────────────┼───────────────────────────┤
+│            │              │                           │
+│            │              │  Raw array of values      │
+│ 2 * PG_SIZ │  Values      │  in mid order             │
+│            │              │  (f64)                    │
+│            │              │                           │
+├────────────┼──────────────┼───────────────────────────┤
+│            │              │                           │
+│ 2 * PG_SIZ │              │  Raw array of volumes     │
+│ + VA_SIZ   │  Volumes     │  in mid order             │
+│            │              │  (f64)                    │
+│            │              │                           │
+├────────────┼──────────────┼───────────────────────────┤
+│            │              │                           │
+│ 2 * PG_SIZ │              │  Raw array of indices     │
+│ + VA_SIZ   │  Prev ids    │  in mid order             │
+│ + VO_SIZ   │              │  (f64)                    │
+│            │              │                           │
+├────────────┼──────────────┼───────────────────────────┤
+│            │              │                           │
+│ 2 * PG_SIZ │              │                           │
+│ + VA_SIZ   │   End        │  N/A                      │
+│ + VO_SIZ   │              │                           │
+│ + PR_SIZ   │              │                           │
+│            │              │                           │
+└────────────┴──────────────┴───────────────────────────┘/cv

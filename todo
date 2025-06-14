@@ -1,7 +1,13 @@
+TODO strategy variants : explain that high level strategies can be implemented in different ways (with varying parameters) and that each candidate set of paremeters has to be backtested, leading to the need for efficient backtesting capabilities.
+
+TODO backtesting paragraph after strategies ; explain the need for accurate backtesting of strategies -> need to run the exact algorithm that we want to run, exercising the same paths that will be ran at runtime like order passing logic, but using : 
+- historical data as opposed to real-time data.
+- a simulation broker that passes orders using the historical price.
+
+TODO make two high level diagrams, one for backtesting and one for real-time.
 
 TODO trading bot connectors : 
 - describe the broker connector protocol.
-
 
 /*********************
  * Kasan constraints *

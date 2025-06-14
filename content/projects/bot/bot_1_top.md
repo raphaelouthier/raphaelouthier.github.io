@@ -48,6 +48,7 @@ We want the strategies ran by the bot to be :
 
 Internally, a strategy is characterized by three things : 
 - a target instrument that it will buy or sell.
+- a currency, in which this instrument is traded.
 - a detector, which reads historical data from the past and present and detects certain conditions (ex : an increase of more than X% in a given stock price). Upon detection, it makes a prediction on the future return on investment that buying the target instrument now will generate.
 - trading parameters, which upon detection, describe the process of buying the target instrument, and monitoring its price evolution in order to detect when it should be sold.
 
@@ -95,11 +96,34 @@ Otherwise, the portfolio would inaccurately track its resources which could lead
 
 ## Allocation
 
-TODO
+The allocation algorithm is the heartbeat of the trading bot.
 
-## Local provider, remote providers, simultaneous access :
+It consists on a routing called periodically, which does three things : 
+- first, it call the detector of each strategy, which returns :
+  - 0 if we should not trade now for this strategy.
+  - a non-zero weight if we should trade following the strategy's trade parameters. This weight will be used to decide how much money is allocated to the trade.
+- then, for each currency that the bot owns :
+  - it calculates the sum of weights w of all strategies whose :
+    - predictor fired; and
+    - target instruments trade in this currency.
+  - then for each of these strategies, it allocates M = C * w / W money to this strategy, with : 
+   - C : the total amount of this currency that the bot currenty owns.
+   - w : the weight returned by the strategy's predictor.
+   - W : the total weight calculated previously.
+- then for each strategy that was allocated money, it creates a trade sequence using : 
+  - the allocated amount.
+  - the strategy's trade parameters. 
 
-The term "provider" will be used all along this series to describe both : 
+As stated before, trade sequences are not implemented by strategies themselves. They use a generic algorithm, and strategies only provide their own configurations for the generic trade sequence.
+Their involvement in the trading bot hence stops here.
+
+## General considerations on the provier.
+
+This section will not describe the provider in a technical manner, as this will be done in a dedicated chapter.
+
+Rather, it will try first define the entities involved in the provision and consumption of historical data, and introduce the problems that the provider design will have to solve.
+
+Let's first define the terms : 
 - remote provider : the entity that provides the historical data (ex : polygonio).
 - provider, or local provider : the block of the trading bot that :
   - queries the remote providers for historical data.
@@ -112,7 +136,8 @@ Remote providers like polygonio offer different prices for different historical 
 
 It is thus important to support multiple remote providers. When the local provider will need to download data in a time range, it will select a source that can provide this time range and download the data from it.
 
-The backtesting capability of the trading bot will affect the design of the local provider. Indeed, if we want to take advantage of the full processing powerr of our processor, we will likely start multiple backtesting sessions in parallel (in different processes) for multiple strategies.
+The backtesting capability of the trading bot will affect the design of the local provider. Indeed, if we want to take advantage of the full processing power of our processor, we will likely start multiple backtesting sessions in parallel, each running in dedicated process, for each strategy candidate.
+These backtesting sessions will likely test variants of the same high level strategies for the same target instruments, and hence, will use the same historical data.
 
 Each one of these processes will have its own local provider, and the question is then : does each local provider have its own storage ? Formulated differently : can multiple instances of the local provider share the same disk storage, or do they have to re-download the data from the remote providers ?
 
@@ -129,13 +154,6 @@ Hence, we must design the local provider in a semi-clever way so that :
 - they do this as efficiently as possible.
 
 The actual implementation of the local provider is surprisingly simple in term of number of lines, but has a high conceptual/nb_of_lines ratio. Many design choices will impact the overall perf, and this, the local provider implementation will be covered in a dedicated article.
-
-
-
-
-
-
-
 
 ## Local broker, remote broker, simulation broker.
 
