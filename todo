@@ -2,6 +2,8 @@
 TODO trading bot connectors : 
 - describe the broker connector protocol.
 
+TODO trade sequences lib.
+
 /*********************
  * Kasan constraints *
  *********************/
