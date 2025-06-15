@@ -33,24 +33,6 @@ Let's now take a look at the fundamental concepts behind this rather convoluted 
 
 ## Strategies
 
-### Examples and needs
-
-The term strategy will be used to describe the process of looking in past/present data and identify when a set of conditions to be met and make a set of investment decisions based on that fact.
-
-Some simple examples are :
-- statistical correlation between an instrument's current value and another instrument's past value :
-  - stock A gained 5% between one day ago and now, we buy stock B. If stock B gains more than 5%, or looses more than 1%, we sell, 
-- arbitrary rule based on local variations of a single instrument :
-  - stock A lost 5% of its value, we buy A. If it regains more than 3 ppts or looses 2 more ppts, we sell.  
-
-Those simple examples show that strategies can be made generic and receive parameters which condition their behavior. The first example can be summarized as "detect a price increase of stock A of at lest x% from time 'now - d' and 'now', and when it is the case, buy stock B. Then, if it looses more than m, or takes more than M%, sell." with parameters (x=5, d=one day, m=1, M=5).
-
-When searching for profitable strategies, we will first have to select a generic strategy, and find the proper values for its parameters. In practice, that means finding among a set of parameters which one would have been the most profitable in the recent past.
-
-Hence, we will need to backtest our strategy. In practice, this will mean running our candidate strategy with past data, let it trade using a simulation broker, and measure its profitability.
-
-### Definitions
-
 We want the strategies ran by the bot to be :
 - **dynamic** : act based on different strategies, offering me the ability to add a new strategy without rewriting the entire bot.
 - **backtestable** : the quality of a strategy is determined by how much money it can make in reality. Before adding a new strategy, it should be backtested allowing me to verify if it would have been profitable in the recent past.
