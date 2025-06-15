@@ -33,6 +33,8 @@ Let's now take a look at the fundamental concepts behind this rather convoluted 
 
 ## Strategies
 
+### Examples and needs
+
 The term strategy will be used to describe the process of looking in past/present data and identify when a set of conditions to be met and make a set of investment decisions based on that fact.
 
 Some simple examples are :
@@ -40,6 +42,14 @@ Some simple examples are :
   - stock A gained 5% between one day ago and now, we buy stock B. If stock B gains more than 5%, or looses more than 1%, we sell, 
 - arbitrary rule based on local variations of a single instrument :
   - stock A lost 5% of its value, we buy A. If it regains more than 3 ppts or looses 2 more ppts, we sell.  
+
+Those simple examples show that strategies can be made generic and receive parameters which condition their behavior. The first example can be summarized as "detect a price increase of stock A of at lest x% from time 'now - d' and 'now', and when it is the case, buy stock B. Then, if it looses more than m, or takes more than M%, sell." with parameters (x=5, d=one day, m=1, M=5).
+
+When searching for profitable strategies, we will first have to select a generic strategy, and find the proper values for its parameters. In practice, that means finding among a set of parameters which one would have been the most profitable in the recent past.
+
+Hence, we will need to backtest our strategy. In practice, this will mean running our candidate strategy with past data, let it trade using a simulation broker, and measure its profitability.
+
+### Definitions
 
 We want the strategies ran by the bot to be :
 - **dynamic** : act based on different strategies, offering me the ability to add a new strategy without rewriting the entire bot.
@@ -57,7 +67,9 @@ Detectors can vary a lot and characterize the implemented strategy.
 Trade sequences are very similar accross different strategy : they invest a certain amount of money in the target instrument, and wait for certain conditions to be met to sell them.
 
 Trading parameters describe in which modalities the trading bot will buy and sell.
+
 Since buying and selling is a rather critical part of the trading bot, it is accomplished by a dedicated library, the trade sequence lib, which will be described in a dedicated chapter.
+
 
 
 ## Resources and portfolio
@@ -178,12 +190,20 @@ It uses the data provider to query the price of an intrument target of an order 
 It inherently assumes that the orders that are passed by the bot have no effect on the effective prices, which as of last time I checked my bank account, sounds like a reasonable assumption for a bot using it.
 
 
+## Backtesting.
 
+As stated in the previous section, strategies that are used in real time to actually trade must be backtested beforehand (and actively once they are in production, to ensure that they are still profitable).
 
+For both testing and correctness, it is important to have the backtesting algorithm behave as close to the real time trading algorithm as possible. 
 
+Ideally, we want to have the exact same code running in both cases, which is possible, with the only exception being the broker, as we cannot ask interactive brokers to pass orders in the past. We will need a dedicated component, the simulation broker, described in the broker section below, which will pass orders based on the provider's historical data.
 
+All other elements of the bot can behave the same way.
+Hence, in practice, backtesting only removes the need for a remote broker, which simplifies the structure of the trading bot. Here the diagram representing the components the trading bot used when backtesting.
 
-
-
-
+{{< figure
+	src="images/bot/bot_bkt.svg"
+	caption="Diagram of the backtesting trading bot."
+	alt="tb backtest"
+	>}}
  
