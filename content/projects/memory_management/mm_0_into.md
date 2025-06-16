@@ -3,7 +3,7 @@ title: "Memory Managers : Introduction"
 summary: "General considerations on memory and memory managers."
 series: ["Memory Management"]
 series_order: 0
-categories: ["Kernel, Memory Management, C, Operating Systems"]
+categories: ["Kernel", "Memory Management", "C", "Operating Systems"]
 #externalUrl: ""
 showSummary: true
 date: 2021-09-17

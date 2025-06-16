@@ -3,10 +3,10 @@ title: "Memory Manager : Part 1"
 summary: "The primary memory manager"
 series: ["Memory Management"]
 series_order: 1
-categories: ["Kernel, Memory Management, C, Operating Systems"]
+categories: ["Kernel", "Memory Management", "C", "Operating Systems"]
 #externalUrl: ""
 showSummary: true
-date: 2021-09-17
+date: 2021-09-19
 showTableOfContents : true
 draft: true
 ---
