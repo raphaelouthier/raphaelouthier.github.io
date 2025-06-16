@@ -76,7 +76,7 @@ I made the choice of relying heavily on file system import and export to save th
 
 Since order passing (whose intricacies with the portfolio are described below) is relatively rare in a system with a response period of one minute, it is acceptable to completely export the portfolio to disc before and after updating (passing, completing, cancelling) any order. This way (and with the careful export of the remaining trading core components at the same time), if the trading core faults for some reason, the previously exported (and valid) state of the portfolio can be used when restarting the trading core, and the asset accounting system is not in danger.
 
-### Order passing, and assets usage.
+## Order passing, and assets usage.
 
 One of the fundamental goals of the trading core is to pass (profitable) orders to the broker.
 
