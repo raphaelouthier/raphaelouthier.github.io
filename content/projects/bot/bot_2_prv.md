@@ -138,7 +138,7 @@ Since we must respect page alignment, the effective size of those arrays can be 
 - VA_SIZ, VO_SIZ : (3064320 + (PG_SIZ - 1)) & ~(PG_SIZ - 1) = 0x2f0000 = 3080192
 - PR_SIZ : (1532160 + (PG_SIZ - 1)) & ~(PG_SIZ - 1) = 0x180000 = 1572864 
 
-(This uses the fact that PG_SIZ is a power of 2, so rounding down to it is just masking some bits, and that rounding a number up to X is equivalent to rounding down to this number down to (X - 1)).
+(This uses the fact that PG_SIZ is a power of 2, so rounding down to it is just masking some bits, and that rounding a number N up to X is equivalent to rounding N + (X - 1) down to X.
 
 ## Going further ; mapping, shareability, cache coherency and performance.
 
