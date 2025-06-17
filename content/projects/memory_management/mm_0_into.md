@@ -236,7 +236,7 @@ The safest certainty we have is that they should be avoided if at all possible. 
 
 Except when it does.
 
-I personally had the unpleasant experience of observing that some implementations of the C standard library actually generated such accesses (particularly in functions like memcpy or memset, by uncarefully extending the copy / write size), but patches seem to be in the works for those.
+I once had an unpleasant experience dealing with a version of the C standard library that had some functions that generated such accesses. For the record, those functions were memcpy and memset, and they generated unaligned accesses by uncarefully extending the read / copy / write granularity without checking the alignment of source/dest addresses.
 
 Additional reading :
 
