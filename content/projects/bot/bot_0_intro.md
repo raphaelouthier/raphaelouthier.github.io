@@ -11,7 +11,7 @@ showTableOfContents : true
 draft: true
 ---
 
-This series of articles describe the structure of a low frequency trading bot supporting dynamic, adjustable and backtestable investment strategies, a project that I have been working on for two years in the hope that some day, I could just start it in the morning and watch it print money while I drink coffee. Or contemplate it burn all my savings in 10 minutes.
+This series of articles describe the structure of a low frequency trading bot supporting dynamic, adjustable and backtestable investment strategies, a project that I have been working on and off for three years in the hope that some day, I could just start it in the morning and watch it print money while I drink coffee. Or contemplate it burn all my savings in 10 minutes.
 
 This chapter covers some necessary precautions, states the objectives of the trading bot, its limitations, the impact of these on the implementation, and defines what strategies are.
 
@@ -29,7 +29,7 @@ This series of articles sometimes contains code snippets but the entire project 
 
 ### Sponsoring
 
-Accross this article, I mention a few company names like polygonio or interactive brokers.
+Accross this article, I mention a few company names like polygonio and interactive brokers.
 
 I just happen to be their client.
 
@@ -56,7 +56,7 @@ One of my general rules is to reimplement everything I use when possible and rel
  
 First, let's state the limits and objectives of this project.
 
-I am not a trader, I am an outsider to the financal world. As such, I recognise that the investment strategies I can come up with would be naive and of poor quality compared to industry standards. I am a kernel engineer, and that conditions the goal I set I was writing the trading bot.
+I am not a trader, I am an outsider to the financal world. As such, I recognise that the investment strategies I can come up with would be naive and of poor quality compared to industry standards. I am a kernel engineer, and that explains that the goal I was writing the trading bot.
 
 A kernel is essentially a shared resource manager.
 It coordinates the shared access to resources like CPU execution time, memory, storage, devices like networking cards, etc...
@@ -64,12 +64,12 @@ The fundamental problem of a kernel is : how do we manage these resources, in or
 Those factors are sometimes antagonist : more secure often implies less performant, and vice versa.
 Before providing an implementation, one must carefully study what their use case is, deduce their performance metric, and then, design how resources should be handled by the kernel based on those axioms.     
 
-If we think about it, investment strategies essentially do two things : consume historical data produced by data providers, and produce trading decisions consumed by the broker.
+If we think about it, investment strategies essentially do two things : consume historical data steamed by data providers, and produce trading decisions consumed by the broker.
 It is the role of the trading bot to allow the strategies to do this in a performant manner.
-Historical data is a shared computational resource, which strategies must have a very fast access to. The performance metric here is the access speed.
+Historical data is a shared computational resource, to which strategies must have a very fast access to. The performance metric here is the access speed.
 Trading decisions are rarely made, and involve money and instruments, which must be managed with care. The performance metric here is the fault tolerance.
 
-The same way a kernel aims to provide performant to shared resources, my objective when writing this trading bot was to design a system which allows the easy implementation of complex strategies and that lets them access historical data and manage orders in a performant way.
+The same way a kernel aims to provide performant access to shared resources, my objective when writing this trading bot was to design a system which allows the easy implementation of complex strategies and that lets them access historical data and manage orders in a performant way.
 
 But enough with the warnings, let's get started.
 
@@ -83,15 +83,19 @@ Base objectives :
 
 ## Strategies
 
-The term strategy is used to describe the process of looking in past/present data to identify when a set of conditions is met, and when it is, making a set of investment decisions.
+The term strategy is used to describe the process of looking in past/present data to identify when a set of conditions are met, and when this occurs, make  a set of investment decisions.
 
 Some simple examples are :
 - statistical correlation between an instrument's current value and another instrument's past value :
-  - stock NVDA gained 5% between one day ago and now, we buy stock . If stock AMZN gains more than 5%, or looses more than 1%, we sell, 
+  - stock NVDA gained 5% between one day ago and now, we buy AMZN stock . If AMZN gains more than 5%, or looses more than 1%, we sell. 
 - arbitrary rule based on local variations of a single instrument :
   - stock NVDA lost 5% of its value, we buy NVDA. If it regains more than 3 ppts or looses 2 more ppts, we sell.  
 
-Those simple examples show that strategies can be designed as generic algorighms that receive parameters which condition their behavior. The first example can be summarized as "detect a price increase of stock A of at least x% between time 'now - d' and 'now', and when it is the case, buy stock B. Then, if it looses more than m, or takes more than M%, sell." with parameters (x=5, d=one day, m=1, M=5, A=NVDA, B=AMZN).
+Those simple examples show that strategies can be designed as generic algorighms that receive parameters
+which condition their behavior. The first example can be summarized as "detect a price increase of stock 
+{{< katex >}}
+A of at least \\(x\\)% between time 'now - d' and 'now', and when it is the case, buy stock B. 
+Then, if it looses more than \\(m\\), or takes more than \\(M\\)%, sell." with parameters `(x=5, d=one day, m=1, M=5, A=NVDA, B=AMZN)`.
 
 This implies that there is an infinite number of potential strategies, and that one of our goals is to find the best strategies to use. 
 
