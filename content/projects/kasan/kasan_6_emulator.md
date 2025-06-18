@@ -1,14 +1,14 @@
 ---
 title: "ARM Thumb Emulator."
-summary: "How to execute instructions in software."
+summary: "Executing instruction the way it should not be done."
 series: ["KASAN"]
 series_order: 6
 categories: ["KASAN"]
 #externalUrl: ""
 showSummary: true
-date: 2023-10-03
+date: 2023-11-15
 showTableOfContents : true
-draft: true
+draft: false
 ---
 
 As stated in the previous sections, to verify our accesses, we will use the MPU to blacklist all the RAM minus the stacks, which will make any access to these instructions trap.
@@ -129,12 +129,10 @@ Using the instruction representation provided by the python script, it was easy 
 - then it generates a bisection tree by recursively dividing the instruction set in two based on the value of a particular bit know (either 0 or 1 but not x) for all bits.
 - then, it generates the ifelse tree based on that, and the field extraction code based on each instruction description.
 
-This code is again close-source, but if the reader needs to be convinced that what I describe is possible, they may find a procedurally generated decoder for a part of the AArch32 ISA (with minor changes), through this link.
+This code is again close-source, but if the reader needs to be convinced that what I describe is possible, they may find a procedurally generated decoder for a part of the AArch32 ISA (with minor changes), through [this link](https://github.com/Briztal/kr_public/blob/master/aarch32_dec.h)
 
-This code is not public domain and you should not use it as it will not work as it : the minor changes that I just mentioned are actually me intentionally inverting the encoding of some frequently used instructions.
+This code is not public domain and you should not use it as it will not work as it : the minor changes that I just mentioned are actually me intentionally inverting the encoding of some frequently used instructions because I'm a nice person.
 
-If you need the real decoder, you can get in touch with me !
-
-TODO 
+If you need the real decoder, reach out to me directly. 
 
 

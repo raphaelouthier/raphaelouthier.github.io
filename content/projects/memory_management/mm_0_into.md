@@ -11,34 +11,31 @@ showTableOfContents : true
 draft: true
 ---
 
-In all articles of this series, sizes of different types of memory blocks will be an important topic.\
-To differentiate sizes more clearly, the concept of order of magnitude, or order, will be used as an equivalent qualifier, both concepts being linked by : 
+Since this series of articles discuss memory, let's first define the concept of order of magnitude, which will be used as a more relevant metric than size to differentiate memory blocks.
 
 {{< katex >}}
 $$
 size = 2^{order}
 $$
-An increment of order multiplying the size by 2.
+
+An order increment multiplies the size by 2.
 
 
 ### Introduction
 
-Memory, although one of the most important resources of any running program, is perhaps, also, one of the least understood.
+Memory is one of the most important resources of any running program, but is perhaps also one of the least correctly understood by programmers.
 
-In most modern languages, an effort is made to take memory management out of the programmer’s hands in an effort of safety and transparency.
+In most modern languages, an effort is made to take memory management out of the programmer’s hands.
 
-Even in low level languages such as C or Rust, memory management, though being accessible to the programmer, is confined to the use of malloc/free-ish primitives, which serve as an abstraction of the host’s memory manager (ex : glibc). \
-The memory manager itself is meant to be invisible to the user, which may explain why so many developers are so unfamiliar with memory management techniques, costs, trade-offs, and efficiency.
+Even in low level languages such as C or Rust, memory management, though being accessible to the programmer, is confined to the use of malloc/free-ish primitives, implemented in the language's standard library (ex : glibc).
 
-In this article, I intend to take the radically opposite direction, by providing a simplified overview of different memory management techniques, their objectives and trade-offs, and explore how these different techniques are combined to form a simple kernel-level memory management system.
+The underlying memory managers and their implementations are meant to be invisible to the user, which may explain why so many developers are so unfamiliar with the different memory management techniques, and their associated costs, trade-offs, and efficiencies.
 
-In this first chapter I will start by defining the basics needed to better understand memory manager design. 
+This series of article will take the opposite direction, and  provide a simplified overview of different memory management techniques, their objectives, trade-offs, and explore how they interact with each other.
 
-Much of the theory and the designs that I will be describing in this article are a collections the things I have learned by exploring the sources of different kernels, linux on top of the list, reading papers and testing implementations of my own.
+In this, we will cover the basics needed to properly understand memory managers, their design and performance.
 
-I hope this articles will be useful to developers looking for a high level understanding of the concepts behind this truely fascinating domain that is memory management.
-
-I wish you a pleasant read.
+The theory and designs that I will introduce in this article are based on my study of different kernels (linux being on the list), and on my own implementations and trials.
 
 {{< figure
 src="images/memory_management/floppy.webp"
@@ -47,40 +44,37 @@ caption="Image credits : Photo by pipp from FreeImages"
 
 ### The memory bottleneck
 
-As software developers we, on average, tend to view memory as an uniform resource, with a constant and negligible access time.
+As software developers we tend to view memory as an uniform resource, with a constant and negligible access time.
 
-To illustrate let me recall an experiment I once did when tutoring a group of programmers:
+I once asked a group of (computer science) students which type of instructions takes the longest time to complete among :
+- **memory accesses** (read / write).
+- **computational operations** (int / float sum / diff / div).
+- **control flow operations** (conditional (or not) jumps.
 
-I presented them with a simplified CPU that would execute 3 types of operations:
-- **memory access** (read / write).
-- **ALU operations** (int / float sum / diff / div).
-- **branch operations** (conditional (or not) jumps.
+They all chose computational operations, which is not surprising given what we are taught at school, and also considering the fact that in a program, memory accesses are simple enough to write (if not just transparent to the programmer) but computational and control flow operations are what most of the code will be about.
 
-I then asked the room which type of operations could have the longest execution time.  Nearly all of them chose calculations.
-
-This is what school teaches us, as well as what modern languages give us the impression of.
-However, this is also utterly false.
+However, this is also incorrect in most cases.
 
 Memory is the major bottleneck of modern computer micro architectures, and has been so since CPU cycle time and memory access time diverged, back in the 90s.
 
 ### Cache
 
-In an effort to mitigate this memory access bottleneck, modern CPU hardware designs have introduced a transparent multi-level cache system.
+To mitigate this memory access bottleneck, modern CPU feature a transparent multi-level cache system.
 
-Cache levels store and exchange contiguous memory blocks called cache lines.\
+Cache levels store and exchange contiguous memory blocks called cache lines. \
 Cache lines have a constant size and are aligned on this size. \
-The cache line is the smallest granule a cache can request memory on, and as a result, is the granule at which all operations are executed from the point of view of the external memory.
+The cache line is the smallest granule a cache can request memory on, and as a result, is the minumal granule at which all operations are executed from the external memory's standpoint.
 
-Consequencently, assuming the memory region isn't already cached : 
-- any user memory **read** will eventually cause at least one read of the **whole cache line** from memory to the cache system.
-- any user memory **write** will eventually cause at least one write of the **whole cache line** to memory from the cache system.
-- any user operation **requiring exclusivity** on a memory segment (ex : atomic operation) will be handled by the cache system. The memory subsytem containing the L1 cache of the core executing this instruction will require the exclusivity on the **whole cache line**.
+Hence, on a CPU with empty caches :
+- a memory **read** will cause a read of the **entire cache line** from memory to the cache system.
+- a memory **write** will cause a read plus at some point a write of the **entire cache line** to the memory system.
+- any operation **requiring exclusivity** on a memory location, like an atomic operation, will require the exclusive ownership of the **whole cache line** by the CPU's cache
 
 Additional details :
 - [Reducing Memory Access Times with Caches | Red Hat Developer ](https://developers.redhat.com/blog/2016/03/01/reducing-memory-access-times-with-caches?source=post_page-----4f2acc9d5e28---------------------------------------#)
 - [How L1 and L2 CPU Caches Work, and Why They're an Essential Part of Modern Chips | ExtremeTech ](https://www.extremetech.com/extreme/188776-how-l1-and-l2-cpu-caches-work-and-why-theyre-an-essential-part-of-modern-chips?source=post_page-----4f2acc9d5e28---------------------------------------)
 
-### Page and Frame
+### Page
 
 Modern systems are equipped with an MMU (Memory Management Unit) that provides, among others uses, memory access protection and virtualization capabilities.
 
@@ -90,19 +84,14 @@ In such systems, two different address spaces are to consider :
 - **physical address space** : the address space in which hardware devices are accessible at determined addresses, this includes DRAM, peripherals like UART, USB, ETHERNET, Bus interfaces like PCIE, etc…
 
 The relation between virtual and physical address relies on two concepts :
-- the partition of both virtual and physical address spaces in blocks of constant sizes called pages (typical smallest size of 4KiB), aligned on their size.
-- the definition by software of a set of translation rules, that associate at most one physical page to each virtual page, called a Page-Table. The MMU is used when it needs to translate a virtual address into a physical address. In paractice, to speed up these translations, local copies of previous translation results can be stored locally in the CPU within TLBs.
+- the partition of both virtual and physical address spaces in blocks of constant sizes called pages (typical smallest size of 4KiB), aligned on their size. Virtual pages are called pages, physical pages are sometimes referred to as *frames*.
+- the definition by software (using a format defined by the hardware) of a set of translation rules, that associate at most one physical page to each virtual page, called a page-tree or page-table. The MMU uses this informatuon to translate a given virtual address into a physical address.
 
-The **page order** \\((log2(page size))\\) is a hardware constant, and cannot be changed.
+
+The minimal granule at which translations can be decided is called the **page order** \\((log2(page size))\\) and is a hardware constant.
 
 Though, the operating system may require, for its own reasons, to work on a larger base block.
 
-It will then define another block called a **Frame**, that will contain a power of 2 number of pages.
-In practice, a frame is simply a block of pages abstracted by the OS.
-
-Though this mechanism may be interesting, it will not be detailed in this article. I will, for the sake of simplicity, consider in the following part of the article that pages and frames as the same entities.
-
-Additional details :
 - [Paging and Segmentation | Enterprise Storage Forum](https://www.enterprisestorageforum.com/hardware/paging-and-segmentation/?source=post_page-----4f2acc9d5e28---------------------------------------)
 - [The Translation Lookaside Buffer (TLB) | Arm Developer](https://developer.arm.com/documentation/den0013/d/The-Memory-Management-Unit/The-Translation-Lookaside-Buffer)
 
@@ -162,8 +151,7 @@ Additional details on NUMA :
 
 ### Fundamental orders
 
-Now that all these bases are laid, there are some fundamental orders that must be understood and kept in mind when talking about memory management :
-
+Here are some orders to keep in mind when discussing memory management :
 - Byte : order 0, constant.
 - Pointer : order ~ 2 or 3 (= 4B or 8B), depends on the size of the virtual address space.
 - Cache line : order ~ 8 (= 64B), depends on the cache management system.
@@ -173,85 +161,82 @@ Now that all these bases are laid, there are some fundamental orders that must b
 {{< figure
 src="images/memory_management/page_order.webp"
 alt="really cool diagram that I made"
-caption="Visual representation of the fundamental orders of memory sizes"
+caption="Visual representation of the fundamental orders."
 >}}
 
 ### Allocation types
 
-Now that orders are defined, we can also consider some fundamental allocation types, which will help us classify allocators, and each's objectives:
+With those orders in mind, let's consider the different allocation types, to help us classify allocators and the objectives :
 
 - **small blocks (< cache_line_size)** : frequent allocation, used for a huge part of object allocations (average size of malloced structures = 60 bytes), must be fast, small blocks must respect the fundamental alignment.
 - **intermediate blocks ( < page_size)** : least frequent allocation, used for larger structs, may not be fast. Intermediate blocks must respect the fundamental alignment.
-- **page ( = page_size)** : very frequent use by the kernel to populate page-tables, usage by secondary allocators as super blocks, must be very fast. Pages must be aligned on the page order.
+- **page ( = page_size)** : used by the kernel to populate page-tables, usage by secondary allocators as superblocks, must be very fast. Pages must be aligned on the page order.
 - **page blocks** : contiguous page blocks, used by secondary allocators, less frequent. Page blocks must be aligned on the page order.
 
-### 🐔 & 🥚 problem 
+### Physical memory management, 🐔 & 🥚 problem 
 
-Primary memory management is a difficult problem, because it cannot require the use of any other allocator, as it is **THE** first allocator, the one managing primary memory, which is provided as-it.
+Physical memory management is a difficult problem, because it cannot require the use of any other allocator, as it is **THE** first allocator, the one managing physical memory, which is provided as-it.
 
-Moreover, it cannot use the memory it manages to store allocation metadata, simply because one of its jobs is to allocate pages that must be aligned on a page size.
+It cannot use per-page or per-page block metadata inside those pages (or page blocks, blocks), but it split the block of physical memory that it manages into two :
+- allocatable pages.
+- metadata for the allocatable pages.
 
-Storing for example 64 bytes of metadata between each page would cause a memory loss of 4096–64 bytes of data which defeats the purpose.
+Let's note two things first :
+- Allocating a page is a subproblem of allocating a page block.
+- An allocator able to provide page blocks can be used as a memory source for memory allocators that allocate smaller blocks.
 
-{{< figure
-src="images/memory_management/cache_line.webp"
-caption="To scale, illustration for the unused memory problem when storing metadata on one cache line."
->}}
+Hence, we can define two types of memory allocators :
+- **Primary allocators** who manage primary memory blocks, and that allocate page blocks in those.
+- **Secondary allocators** who divide page blocks provided by primary allocators into smaller blocks that they allocate to their users.
 
-A good approach to design such memory manager is to observe the following :
-
-- Solving the page block allocation problem solves the page allocation problem.
-- If the page block allocation problem is solved, then the resulting allocator can be used to provide page blocks (superblocks) to other allocators that will handle the allocation of small and intermediate blocks. Those will receive superblocks and use them to allocate blocks of inferior size.
-
-We then define two categories of memory allocators :
-
-- **Primary allocators** : manage primary memory blocks, allocate page blocks in it.
-- **Secondary allocators** : manage superblocks provided by primary allocators, allocate smaller blocks in it.
-
-The anatomy of a primary allocator, (the buddy), and of several secondary allocators will be detailed in further chapters.
+The anatomy of a primary allocator, (the buddy), and of several secondary allocators will be detailed in the next chapter.
 
 ### Crossing accesses
 
 I stated before that the base granule for memory operations is the cache line.
 
-Now, let’s examine the following C code, and let’s imagine that compiler optimisations and registers do not exist :
+Now, let’s look the following C code, assume that compiler optimisations and registers do not exist, and try to predict what accesses will be generated by the assembly produced by the compiler :
 
 ```C
 int main() {  
   /* Part 1. */
-  char i = 5;
-  long int j = 5;  
+  uint8_t i = 5;
+  uint64_t j = 5;  
   /* Part 2. */
-  char t[16] __attribute__((aligned(8)));
-  *(long int *) (t + 1) = 5;
+  uint8_t t[16] __attribute__((aligned(8)));
+  *(uint64_t *) (t + 1) = 5;
 }
 ```
 
-Let’s focus on part 1 of this code: the compiler will have to generate two memory writes (no optimisations) for your two of variables, storing data to the stack.
+In part 1, the compiler will generate two memory writes instructions targetting the stack (no registers) for `i` and `j` : `i` will be stored using a 1-byte write, and `j` will be stored with an 8-bytes write.
 
-One of those memory writes will concern a char (1 byte), and the second will concern a long (size depends on the architecture, let’s say 8 bytes). The compiler is not crazy, and will not generate 8 consecutive 1-byte write instructions, rather, it will generate one 8-bytes write instruction.
+In part 2, we define char array of 16 bytes on the stack, whose first element’s address is aligned on 8 bytes (\_\_attribute\_\_(…)). Let its address (dynamically determined in a real world example since the stack is used to store local variables) be 56 for our exmple. To perform the write, the compiler to generate a 8-bytes write at addresses [57, 64].
 
-Let’s now observe part 2: we defined a char array of 16 bytes on the stack, whose first element’s address is aligned on 8 bytes (\_\_attribute\_\_(…)), and in practice, will be located at, for example address 56. This will cause the compiler to generate a 8-bytes access starting with a one byte offset, in our case, from the address range 57 to 64.
-
-For the record, it is explicitly mentioned in all the C language standards that this type of pointer casts has an **undefined behaviour**.
+For the record, it is explicitly mentioned in all the C language standards that this type of pointer casts has an **undefined behavior**.
 
 Now if we suppose that the cache line size of our system is 64 Bytes, we just generated a memory write that spans across two cache lines : the first part from 57 to 63 (on cache line ranging from addresses 0–63), the second on 64 (on cache line ranging from addresses 64–127), this type of access being infamously known as an **unaligned access**.
 
-Unaligned accesses may carry a severe penalty and are generally something to avoid generating, as it may lead to undefined behaviours. The example we described was fairly simple, and the answer “ yeah I don’t care generate two accesses instead of one ”, could fly between programmers, but not make the CPU designers happy.
+Unaligned accesses may carry a severe penalty and are generally something to avoid generating, as it may lead to undefined behaviors. The example we described was fairly simple, and the answer “ yeah I don’t care generate two accesses instead of one ”, could fly. But supporting this in HW may make CPU designers unhappy.
 
-But if an access can cross cache lines, it can also cross a page boundary and can concern two virtual pages that can be mapped to two different physical pages with different access privileges and cacheability (another attribute held by the page table).
+But if an access can cross cache lines, it can also cross a page boundary and can involve pages of virtual memory, which could be mapped with different access privileges and cacheability (another attribute held by the page table).
 
-So what to do now ?
+What should the CPU do in this case ? Fault ? Generate two accesses on the different cache lines with different attributes ? CPU designers just went from 'unhappy' to 'complaining'.
 
-Worse, the access could cross a mapped boundary, and concern one virtual page effectively mapped to a physical page, and another that is not mapped to any page.
+Worse case : one of the two virtual page could be mapped, and the other could be non-mapped.
 
-What to do now ? Generate half the access, and not the other ? Generate none ?
+What should the CPU do in this case ? Perform none of the accesses ? Perform the valid part of the access, and not the other ? CPU designers just transitioned to 'angry'.
 
-Worse, the access could be an atomic instruction that requires the exclusivity on one cache line, which is a hell of a heavy work for a CPU. Now to support it, it has to require the exclusivity on two cache lines and split the access. Congratulations, you have successfully turned the unhappy CPU designers into your sworn enemies.
+Worse, the access could be an atomic instruction that requires the exclusivity on one cache line, which is a hell of a heavy work for a CPU.
 
-Some architectures like the old ARM processors (ARMV4T) did not support unaligned accesses, others tolerated it but trapped them (generated a fault when occurring), or profiled them so they could be reported to the respectful developer. The safest certainty we have is that they should be avoided if at all possible. As a matter of fact, the C compiler never generates any unaligned access, unless using implementation-defined behaviour (as we did in my example).
+What should the CPU do in this case ? Fault ? Require the exclusivity on two cache lines and split the access ? CPU designers just transitioned to 'trying to find out where you live'.
 
-I personally had the unpleasant experience of observing that some implementations of the C standard library actually generated such accesses (particularly in functions like memcpy or memset, by uncarefully extending the copy / write size), but patches seem to be in the works for those.
+Some architectures like the old ARM processors (ARMV4T) did not support unaligned accesses, others tolerated it and optionally trapped them, or profiled them so they could be reported to the respectful developer.
+
+The safest certainty we have is that they should be avoided if at all possible. As a matter of fact, the C compiler never generates any unaligned memory access.
+
+Except when it does.
+
+I once had an unpleasant experience dealing with a version of the C standard library that had some functions that generated such accesses. For the record, those functions were memcpy and memset, and they generated unaligned accesses by uncarefully extending the read / copy / write granularity without checking the alignment of source/dest addresses.
 
 Additional reading :
 
@@ -261,11 +246,11 @@ Additional reading :
 
 ### Impact on the memory manager
 
-If there is a takeaway to be remembered from the last paragraph, it is that **unaligned access cost extra and power and therefore should be avoided**.
+The key takeaway to be remembered from the last paragraph is that **unaligned access cause perf and power hits and therefore should be avoided**.
 
 This means that any object legitimately instantiated in memory should not generate unaligned accesses.
 
-For example, an instance of the following struct :
+For example, an instance of the following struct allocated with our memory allocator
 
 ```C
 struct s { 
@@ -275,36 +260,30 @@ struct s {
 };
 ```
 
-should not generate unaligned accesses when accessing the z field, even when occupying a memory zone dynamically allocated with malloc.
-To scale illustration of the structure stored, with respect to the alignment constraints, on the cache line.
+should not generate any unaligned accesses when accessing any of its fields.
 
-{{< figure
-src="images/memory_management/struct_layout.webp"
-caption="To scale illustration of the structure stored, with respect to the alignment constraints, on the cache line."
->}}
+The C compiler (unless manually instructed to do so by the snarky developper) will add padding to this struct the following way :
 
-This implies two things :
+```C
+struct s { 
+  uint32_t x;
+  uint8_t  y;
+  uint8_t pad[3];
+  uint32_t z;
+};
+```
 
-- the allocation by malloc of a block that meets alignment requirements for any primitive type.
-- the **implicit** insertion of 3 padding chars between y and z to ensure that accesses to z are properly aligned.
+But for every field to be accessed without unaligned accesses, when providing a memory block B, an allocator must ensure that B's start address meets alignment requirements for any primitive type that can be placed in an aligned manner in B.
 
-As a consequence, we can determine another constraint of secondary memory allocators (primary allocators allocate page blocks aligned on a page and so, aligned for any primitive type), being that :
-
-_the allocator must provide a block whose start address meets alignment requirements for any primitive type that fits in the provided block, i.e. in 64 bits systems , a block of size 1 can be placed everywhere in memory, a block of size 2 start at an address that is a multiple of 2, a block of size 4 must start at an address that is a multiple of 4, a block of size 8 or more must start at an address that is a multiple of 8._
+Eg " in 64 bits systems, a block of size 1 can be placed everywhere in memory, a block of size 2 start at an address that is a multiple of 2, a block of size 4 must start at an address that is a multiple of 4, a block of size 8 or more must start at an address that is a multiple of 8._
 
 If you wonder, the documentation of the malloc C function, states a similar constraint :
 
 > “If allocation succeeds, returns a pointer that is suitably aligned for any object type with fundamental alignment.”
 
-### Impact on the allocator
+### Impact of fundamental orders on the allocator
 
 The different orders we defined to characterise our memory system may vary among different systems, their variations having an impact on the memory manager and the amount of allocated memory for a same program: 
-
-{{< figure
-src="images/memory_management/size_diff.webp"
-caption="Visual representation of size differences between the different orders of magnitude"
->}}
-
 
 **Byte order** : 1, invariant.
 
@@ -316,11 +295,11 @@ Indeed, when reading the source of large C projects, linux being a good example,
 
 Indeed, the cache line is the base granule on which synchronization instructions operate on modern CPUs : when you execute an atomic operation, the core’s memory system requires the exclusivity on the cache line, then executes your operation, then confirms that the exclusivity was held during the whole operation.
 
-For this reason, it is important that memory allocated to an end-user that may use synchronization instructions on it, is allocated on the granule of a cache line (and aligned on the cache line size). This is needed to avoid a situation where two users could, for example, attempt to lock two different spinlocks, present in two different structures each one of size cache_line_size / 2, but allocated on the same cache line by the memory manager. In this case, when trying to acquire the spinlock and requiring the exclusivity of the cache line. each of the two users will be blocking the other’s ability to acquire the other spinlock, thus creating additional, unnecessary and expensive memory access conflicts.
+For this reason, it is important that memory allocated to an end-user that may use synchronization instructions on it, is allocated on the granule of a cache line (and aligned on the cache line size). This is needed to avoid a situation where two users could, for example, attempt to lock two different spinlocks, present in two different structures each one of size cache_line_size / 2, but allocated on the same cache line by the memory manager. In this case, when trying to acquire the spinlock and requiring the exclusivity of the cache line. Each of the two users will be blocking the other’s ability to acquire the other spinlock, thus creating additional, unnecessary and expensive memory access conflicts.
 
 **Page size order** : has a possible impact on internal fragmentation of secondary allocators, and on efficiency of secondary allocators.
 
-Secondary allocators, as stated before, manage superblocks provided by primary allocators, and use them to allocate smaller blocks. Increasing the page order will increase the minimal superblock size, and so, the amount of primary memory allocated at each superblock allocation.
+Secondary allocators, as stated before, manage superblocks provided by primary allocators, and use those to allocate smaller blocks. Increasing the page order will increase the minimal superblock size, and so, the amount of primary memory allocated at each superblock allocation.
 
 Now let’s say that a secondary allocator is constructed and receives a single allocation request for 64 Bytes of memory. A superblock will have to be allocated, and will be used to provide the 64 Bytes.
 
@@ -328,10 +307,14 @@ Now if no more memory is required from this secondary allocator, the whole super
 
 Now, increasing the superblock size will also decrease the rate at which superblocks will be allocated, which will slightly increase the allocator’s efficiency.
 
+{{< figure
+src="images/memory_management/size_diff.webp"
+caption="Visual representation of size differences between fundamental orders."
+>}}
 
 ### Conclusion
 
-This chapter will have recapitulated what I believe are the most basic things to keep in mind when speaking of memory managers.
+This chapter will have stated what I believe are the most basic things to keep in mind when speaking of memory managers.
 
-In future chapters, we will be focusing on the structure of the primary and secondary memory manager.
+In the next chapter, we will be focusing on the structure of the primary and secondary memory managers.
 
