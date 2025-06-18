@@ -51,11 +51,29 @@ In practice, this means that our disk storage will store data in contiguous arra
 
 My proposal for the design answering those three constraints uses the file system and its memory mapping capabilities as storage medium. To understand why, let's cover how modern operating systems manage disk storage and file memory mapping in a simplified way.
 
-## File system and buffer mapping in userspace. 
+## Operating systems concepts.
 
 ### File system, disk and kernel buffers.
 
-TODO
+First, let's cover how the kernel manages storage devices (disks).
+
+Some facts first. Storage devices :
+- cannot be accessed at a random granularity (byte, cache line, etc...). The same way the cache system cannot perform accesses at a granule inferior to the cache line, storage devices perform reads and writes at a minimal granularity, the sector size, which is a HW characteristic.
+- are not explicitly memory mapped. One cannot just make an access at a given PA and expect a storage device to just respond. Any system allowing that will just provide this as a dirty and non-performant way to use storage devices, which will prove unperformant in most cases.
+- consequence : in order to access the data contained in a storage device (ex : a SATA disk) we will need an SOC peripheral connected to the memory system and providing a HW interface to talk to your disk, and a kernel driver to interact with this peripheral and perform the actual accesses.
+
+Here is a more complex but still extremely simplified view of how we can make code running in CPUs access (DRAM copy of) data located in a disk.
+
+{{< figure
+	src="images/bot/prv_fs_dsk.svg"
+	caption="Interacting with a hard drive."
+	alt="prv fs dsk"
+	>}}
+
+TODO participants
+
+TODO steps
+
 
 ### MMU, virtual address space
 
