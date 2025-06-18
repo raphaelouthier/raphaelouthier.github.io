@@ -11,7 +11,7 @@ showTableOfContents : true
 draft: true
 ---
 
-This series of articles describe the structure of a low frequency trading bot supporting dynamic, adjustable and backtestable investment strategies, a project that I have been working on and off for three years in the hope that some day, I could just start it in the morning and watch it print money while I drink coffee. Or contemplate it burn all my savings in 10 minutes.
+This series of articles describe the structure of a low frequency trading bot supporting dynamic, adjustable and backtestable investment strategies, a project that I have been working on and off for three years in the hope that some day, I could just start it in the morning and watch it print money while I drink coffee. Or contemplate it burn all my savings in 10 minutes.💸
 
 This chapter covers some necessary precautions, states the objectives of the trading bot, its limitations, the impact of these on the implementation, and defines what strategies are.
 
@@ -92,10 +92,14 @@ Some simple examples are :
   - stock NVDA lost 5% of its value, we buy NVDA. If it regains more than 3 ppts or looses 2 more ppts, we sell.  
 
 Those simple examples show that strategies can be designed as generic algorighms that receive parameters
-which condition their behavior. The first example can be summarized as "detect a price increase of stock 
+which condition their behavior. The first example can be summarized as :  
 {{< katex >}}
-A of at least \\(x\\)% between time 'now - d' and 'now', and when it is the case, buy stock B. 
-Then, if it looses more than \\(m\\), or takes more than \\(M\\)%, sell." with parameters `(x=5, d=one day, m=1, M=5, A=NVDA, B=AMZN)`.
+> "detect a price increase of stock 
+\\(A\\) of at least \\(x\\)% between time \\('now-d'\\) and \\('now'\\), and when it is the case, buy stock \\(B\\). 
+Then, if it looses more than \\(m\\), or takes more than \\(M\\)%, sell." 
+
+with parameters :\
+\\((x=5, d=one day, m=1, M=5, A=NVDA, B=AMZN)\\)
 
 This implies that there is an infinite number of potential strategies, and that one of our goals is to find the best strategies to use. 
 
