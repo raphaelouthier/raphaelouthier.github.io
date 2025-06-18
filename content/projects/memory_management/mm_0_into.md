@@ -8,7 +8,7 @@ categories: ["Kernel", "Memory Management", "C", "Operating Systems"]
 showSummary: true
 date: 2021-09-17
 showTableOfContents : true
-draft: true
+draft: false
 ---
 
 Since this series of articles discuss memory, let's first define the concept of order of magnitude, which will be used as a more relevant metric than size to differentiate memory blocks.

@@ -103,7 +103,7 @@ with parameters :\
 
 This implies that there is an infinite number of potential strategies, and that one of our goals is to find the best strategies to use. 
 
-Luckily for us (and this is actually rare in my domain) the performance criterion here is very straighforward : return on investment, aka how much did we make. 
+Luckily for us (and this is actually rare in my domain) the performance criterion here is very straighforward : return on investment, aka: how much did we make. 
 
 But we still have to choose a finite number of strategies among an infinite set.
 This requires us to explore the space of possible strategies, and backtest a few chosen ones. By backtesting, I mean simulating the behavior of those strategies in the recent past to determine what their return on investment would have been.
@@ -121,22 +121,22 @@ From what we covered until now, we can deduce a high level view of what the trad
 ### External entities
 
 First, we have two types of external entities, on the bottom : 
-- data providers : provide historical data that our bot bases its decisions on. There can be many.
-- the broker : allows the bot to pass order creation and management requests in real time. There can only be one.
+- **data providers** : provide historical data that our bot bases its decisions on. There can be many.
+- the **broker** : allows the bot to pass order creation and management requests in real time. There can only be one.
 
 ### Trading core
 
 Then, going up, we see the trading core. It is composed of a single executable, coded in pure C, it consitutes the central piece of the trading bot : it is the one that supervises the execution of our strategies, and that allows them to access historical data and manage orders in the most simple and performant way.
 
 The trading core supports two different execution modes : 
-- trading mode : runs strategies in real-time using present data, and forwards their order management requests to the real broker, in order to generate actual profits.
-- simulation (backtesting) mode : runs strategies using past data, and simulates the order management requests, in order to determine if those strategies would have been profitable in the past.
+- **trading mode** : runs strategies in real-time using present data, and forwards their order management requests to the real broker, in order to generate actual profits.
+- **simulation (backtesting) mode** : runs strategies using past data, and simulates the order management requests, in order to determine if those strategies would have been profitable in the past.
 
-The strategies ran by the trading core in trading more need to be configurable, hence, it uses eithe named pipes or unix sockets to receive configuration requests from the agent. 
+The strategies ran by the trading core in trading mode need to be configurable, hence, it uses eithe named pipes or unix sockets to receive configuration requests from the agent. 
 
 ### Database
 
-Then, on both sides, we have a database which contains two types of data : 
+Then, on the sides of the diagram, we have a database which contains two types of data : 
 - mining data (see miner below) : base data used by the miner to search for strategies.
 - agent config (see agent below) : describes the strategies that should currently be ran by the agent's real time trading core. Updated by the miner, and read by the agent.
 
@@ -150,20 +150,23 @@ Since it needs to access database data by perfroming SQL queries, it will be cod
 
 ### Miner
 
-In the center of the diagram, on the left, we see the miner, which has three responsibilities :
+In the center of the diagram, on the left, we see the miner, which has three roles :
 - exploring the space of all possible strategies to find profitable ones.
-- when it finds currently profitable strategies, it adds those strategies to the agent config.
+- when it finds a profitable strategy, it adds these strategies to the agent config.
 - it regularly backtests the strategies in the agent configs to verify that they are still profitable. If not, it removes them from the agent config.
 
-Its job essentially consists on selecting candidate strategies and starting backtesting sessions using subprocesses running the trading core in simulation mode to calculate their past return on investment. It has itself no real requirement for performance (as the computational work is done by the trading core), but it must efficiently explore the space of possible strategies, and avoid backtesting the same strategies two times. Thus : 
+Its job consists on selecting candidate strategies and starting backtesting sessions using subprocesses running the 
+trading core in simulation mode to calculate their past return on investment. It has no real requirement for 
+performance (as the computational work is done by the trading core), but it must efficiently explore 
+the space of possible strategies, and avoid backtesting the same strategies twice. Thus : 
 - it uses the database to store its backtesting state.
 - it is coded in python to interact painlessly with the database.
 
 ### Controller 
 
-Finally, on the top, we see the control system, which :
+Finally, at the top, we see the control system, which :
 - oversees the execution of all the previously mentioned components (except the database which runs as a system service).
-- allows admin controls to (eg) stop or start the agent, run custom backtesting sessions with admin-specified configs.
+- allows admin controls to, eg: stop or start the agent, run custom backtesting sessions with admin-specified configs.
 
 It is implemented in python and is accessible through a web browser (using flask).
 
@@ -175,9 +178,9 @@ It is implemented in python and is accessible through a web browser (using flask
 First, I am just an individual investor, running code from my computer (or a server) not directly connected to any exchange.
 
 
-That has the following implications :
-- 1 : real time orderbook feed will not be available. We must use an aggregated data feed, which averages instrument prices over a base time slice. It could be any time duration, like a second, a minute, at day, etc... Though a smaller period would mean the need for more storage, it would give me the adentage of having more info on which to base a trading decision.
-- 2 : this data feed will come from a dedicated data provider like polygonio. That implies that we do not have that much choice in the data feed period. Most data providers provide data on a minute basis. This will be the base period that we will use to architect the system. 
+This has the following implications :
+1. real time orderbook feed will not be available. We must use an aggregated data feed, which averages instrument prices over a base time slice. It could be any time duration, like a second, a minute, at day, etc... Though a smaller period would mean the need for more storage, it would give me the adentage of having more info on which to base a trading decision.
+2. this data feed will come from a dedicated data provider like polygonio. That implies that we do not have that much choice in the data feed period. Most data providers provide data on a minute basis. This will be the base period that we will use to architect the system. 
 
 For every minute, each instrument will have the following info :
 - **mid** : minute index, identifier of the minute, i.e number of minutes between this minute and Jan 1st 1970 00:00:00. 
@@ -187,7 +190,7 @@ For every minute, each instrument will have the following info :
 
 ### Latency
 
-The second limitation is that the bot will be running only on CPUs (no hardware acceleration like FPGA), and given what we already stated, will only be able to trade based on a per-minute data feed, which will imply a gigantic reactivity time of one minute.
+The second limitation is that the bot will be running only on CPUs (no hardware acceleration like FPGAs), and given what we already stated, will only be able to trade based on a per-minute data feed, which will imply a gigantic reactivity time of one minute.
 
 A consequence is that we cannot utilize and of the methodes more sofisticated market participants can get an aventage from like : 
 - anything that requires reconstructing the orderbook. 
