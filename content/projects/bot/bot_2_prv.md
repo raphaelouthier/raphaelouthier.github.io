@@ -55,12 +55,34 @@ My proposal for the design answering those three constraints uses the file syste
 
 ### File system, disk and kernel buffers.
 
+In the rest of this article :
+- PA will be used as an accronym for "Physical Address", aka the addresses used in actual memory transactions on the bus (see below).
+- VA will be used as an accronym for "Virtual Address", aka the addresses used by code running in CPUs.
+
+The translation between the two and its impact will be covered in the next section. 
+
 First, let's cover how the kernel manages storage devices (disks).
 
-Some facts first. Storage devices :
+Some facts first.
+
+Processors are distributes system with many components, among them :
+- multiple CPUs, which need to access DRAM.
+- multiple peripherals (Ethernet interface, USB interface, PCIE interface) that (in broad terms) are meant to be programmed by CPUs and that in some cases must access DRAM. 
+- multiple DRAM slots.
+
+The solution to make those entities interact with each others in an unified way is to introduce another entity, the interconnect, abusively called "memory bus" in all this chapter, which connect them all.
+In particular : 
+- it defines the notion of physical address.
+- connected clients can be masters (can initiate transactions), slaves (can process transactions) or both. 
+- it allows its masters to initiate implementation-defined transactions which target a given physical address. It is a functional simplification to consider that memory read and writes are particular cases of such transactions.
+- it allows CPUs to configure and control peripherals by initiating transactions at PA ranges that peripherals are programmed to respond to.
+- it allows CPUs and peripherals to read or write to DRAM by initiating transactions at PA ranges that DRAM controllers are programmed to respond to.
+
+Storage devices like your average SATA or SSD drive :
+- are meant to be pluggable and hence have their dedicated connectors and HW communication protocols.
+- are not meant to interface with processor interconnects directly. One cannot just make an access at a given PA and expect a storage device to just process this access.
 - cannot be accessed at a random granularity (byte, cache line, etc...). The same way the cache system cannot perform accesses at a granule inferior to the cache line, storage devices perform reads and writes at a minimal granularity, the sector size, which is a HW characteristic.
-- are not explicitly memory mapped. One cannot just make an access at a given PA and expect a storage device to just respond. Any system allowing that will just provide this as a dirty and non-performant way to use storage devices, which will prove unperformant in most cases.
-- consequence : in order to access the data contained in a storage device (ex : a SATA disk) we will need an SOC peripheral connected to the memory system and providing a HW interface to talk to your disk, and a kernel driver to interact with this peripheral and perform the actual accesses.
+- consequence : accessing the data contained in a storage device (ex : a SATA disk) is made via a dedicated peripheral connected to the interconnect, providing a HW interface to talk to your disk, and requiring a kernel driver to control with this peripheral.
 
 Here is a more complex but still extremely simplified view of how we can make code running in CPUs access (DRAM copy of) data located in a disk.
 
@@ -70,14 +92,61 @@ Here is a more complex but still extremely simplified view of how we can make co
 	alt="prv fs dsk"
 	>}}
 
-TODO participants
+Participants : 
+- interconnect : allowing all its clients to communicate with each other.
+- CPU : executes user code. Interconnect master only for this example's purpose.
+- DRAM : the actual memory of your system. Interconnect slave, processes transactions, by converting them to actual DRAM read and writes. 
+- Disk : a storage device, that is controlled via an implementation-defined protocol only handled by the storage interface. Not directly connected to the interconnect.
+- Storage interface : interfaces the interconnect and the disks. Must be programmed by an external entity to do so. Interconnect slave : processes memory transactions targetting its adress range as configuration requests, which allows external entites to control its behavior, for example to power up the disk, initiate a sector read or write (etc...). Interconnect master : forwards disk data to DRAM via write interconnect transactions.
 
-TODO steps
+Now, let's describe the different sequences involved to allow CPUs to read data at two different locations on the disk. We will here suppose that CPUs can read at arbitrary PAs, and the next section will complexify this model. 
 
+Step A : storage interface setup.
+
+The kernel running on CPU 0 does the following things : 
+- it allocates two buffers of DRAM using its primary memory allocator, in a zone that allows the storage interface to perform memory transactions (DMA16 or more likely DMA32). 
+- it sends control transactions to the storage interface via the memory bus, to instruct it to perform two disk reads and to store the resulting data at the PAs of the buffers that it allocated. 
+
+Step B : disk reads.
+
+The storage interface has understood the instructions sent by the CPU and starts the disk read sequences. The disk will respond with two consecutive data stream, that the storage interface will then transmit to DRAM using memory bus transactions (DMA).  
+
+Once the reads are done, the storage interface notifies the kernel of their completion by sending an IRQ targetting one of the CPUs.
+
+Step C : CPU access.
+
+Now that DRAM buffers have been initialized with a copy of the data at the required disk locations, CPU can read those buffers by simply performing memory reads at PAs withing buffers A and B (provided that they have invalidated their caches for the memory ranges of A and B).
+
+Now, an immediate consequence of what we covered here is that CPUs _cannot_ modify the data on disk themselves. All they can do is to modify the DRAM copy.
+
+If updates need to be propagated to disk, the kernel will need to initiate another transaction (a disk write this time), instructing the storage interface to read from DRAM and write data to disk. 
+
+From userspace, this is typically initiated via fsync or msync.
 
 ### MMU, virtual address space
 
-TODO
+In the previous section, we assumed that the different CPUs in the system could write to arbitrary PAs.
+
+The reality is more nuanced, as PA access is critical.
+First, allowing any userspace process to access any PA basically allows it to read any other process's data. Just for security reasons, we can't let that happen.
+Then, we saw in the previous sections that some PAs correspond to HW configuration ranges, and if mis-used, can cause HW faults which often just make the system immediately panic. For practicality, we also cannot let that happen.
+Finally, most programs are not meant to deal with PA itself. Physical memory management is a critical task of the kernel, and physical pages are usually allocated in a non-contiguous manner, on a page-per-page basis. Program often need to access large contiguous memory regions (like their whole 4MiB wide executable), and hence, have needs that are incompatible with how physical memory is intrinsicly managed by the kernel.
+
+For all those reasons and others, code running on CPUs (whether it be kernel code or userspace code) does not operate with physical addresses directly.
+
+Rather, it operates using virtual addresses, which translate (or not) into physical addresses using an in-memory structure that SW can configure but whose format is dictated by the HW, called a page table. Every CPU in the system is equipped with a Memory Management Unit or MMU, which translates any VA used by the CPU to the corresponding PA. 
+
+This article will not dive into the format of the pagetable, but here are a few facts worth mentioning :
+- VA->PA translation is done at the aligned page granule. Virtual memory is divided into pages of usually 4, 16 or 64 KiBs and each virtual page can map to at most one physical page. When I say map to, understand 'set by the pagetable content to be translated to'
+- multiple virtual pages can map to the same physical page.
+- the pagetable contains the translation data and also attributes like translation permissions (can data be read, written, executed, and by who ?) and cacheability.
+- the pagetable is dynamically writeable, but usually by privileged software (kernel) only.
+
+Now let's add some details on how the CPUs will need to map memory to perform the various transactions described in the previous section :
+- to program the storage interface, CPUs will need to map the PA region corresponding to the peripheral's control range into a range in their virtual address space (in reality, into the kernel's virtual address space which all CPUs use in kernel mode), and perform memory accessed from this virtual range. The mapping will be RWnE (read/write/non-execute) and non-cacheable, as we want the control transaction not to be affected by the CPU's cache system.
+- to read from and write to DRAM, CPUs will again need to map the PA regions corresponding to the buffer A and B into the kernel's virtual address space and perform their accesses from this virtual range. The mappings will be cacheable, but a few precautions will need to be taken to ensure that reads see the data written by the storage interface, and that reads by the storage interface (during disk writes) see the writes made by the CPU : 
+  - before reading data written by the storage interface, CPUs will need to invalidate the ranges for buffers A and B, so that when they read at those addresses, data is re-fetched from memory.
+  - before instructing the storage interface to write to disk, CPUs will need to flush the ranges for buffers A and B, so that the writes made by CPUs is propagated to memory and observed by the storage interface. 
 
 ### MMAP 
 
