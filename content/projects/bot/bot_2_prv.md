@@ -1,6 +1,6 @@
 ---
-title: "Trading bot : data provider"
-summary: "Data provider"
+title: "Trading bot : data provider, file system internals and kernel disk management."
+summary: "Explaining the provider's design by diving into how HW works."
 series: ["Trading bot"]
 series_order: 2
 categories: ["Trading bot"]
@@ -11,7 +11,7 @@ showTableOfContents : true
 draft: true
 ---
 
-This chapter will describe the design choices of the data provision system.
+This chapter will describe the design choices made when implementing the data provision system and justify them by covering in a simplified, but functional way, how disk access, memory translation, kernel buffer management and memory mapping work.
 
 ## Participants
 
@@ -53,17 +53,17 @@ My proposal for the design answering those three constraints uses the file syste
 
 ## Operating systems concepts.
 
-### File system, disk and kernel buffers.
-
 In the rest of this article :
 - PA will be used as an accronym for "Physical Address", aka the addresses used in actual memory transactions on the bus (see below).
 - VA will be used as an accronym for "Virtual Address", aka the addresses used by code running in CPUs.
 
 The translation between the two and its impact will be covered in the next section. 
 
+### Storage device management.
+
 First, let's cover how the kernel manages storage devices (disks).
 
-Some facts first.
+**Some facts first.**
 
 Processors are distributes system with many components, among them :
 - multiple CPUs, which need to access DRAM.
@@ -84,6 +84,8 @@ Storage devices like your average SATA or SSD drive :
 - cannot be accessed at a random granularity (byte, cache line, etc...). The same way the cache system cannot perform accesses at a granule inferior to the cache line, storage devices perform reads and writes at a minimal granularity, the sector size, which is a HW characteristic.
 - consequence : accessing the data contained in a storage device (ex : a SATA disk) is made via a dedicated peripheral connected to the interconnect, providing a HW interface to talk to your disk, and requiring a kernel driver to control with this peripheral.
 
+**A high level view.**
+
 Here is a more complex but still extremely simplified view of how we can make code running in CPUs access (DRAM copy of) data located in a disk.
 
 {{< figure
@@ -93,7 +95,7 @@ Here is a more complex but still extremely simplified view of how we can make co
 	>}}
 
 Participants : 
-- interconnect : allowing all its clients to communicate with each other.
+- IC (interconnect) : allowing all its clients to communicate with each other.
 - CPU : executes user code. Interconnect master only for this example's purpose.
 - DRAM : the actual memory of your system. Interconnect slave, processes transactions, by converting them to actual DRAM read and writes. 
 - Disk : a storage device, that is controlled via an implementation-defined protocol only handled by the storage interface. Not directly connected to the interconnect.
@@ -101,19 +103,19 @@ Participants :
 
 Now, let's describe the different sequences involved to allow CPUs to read data at two different locations on the disk. We will here suppose that CPUs can read at arbitrary PAs, and the next section will complexify this model. 
 
-Step A : storage interface setup.
+**Step A : storage interface setup.**
 
 The kernel running on CPU 0 does the following things : 
 - it allocates two buffers of DRAM using its primary memory allocator, in a zone that allows the storage interface to perform memory transactions (DMA16 or more likely DMA32). 
 - it sends control transactions to the storage interface via the memory bus, to instruct it to perform two disk reads and to store the resulting data at the PAs of the buffers that it allocated. 
 
-Step B : disk reads.
+**Step B : disk reads.**
 
 The storage interface has understood the instructions sent by the CPU and starts the disk read sequences. The disk will respond with two consecutive data stream, that the storage interface will then transmit to DRAM using memory bus transactions (DMA).  
 
 Once the reads are done, the storage interface notifies the kernel of their completion by sending an IRQ targetting one of the CPUs.
 
-Step C : CPU access.
+**Step C : CPU access.**
 
 Now that DRAM buffers have been initialized with a copy of the data at the required disk locations, CPU can read those buffers by simply performing memory reads at PAs withing buffers A and B (provided that they have invalidated their caches for the memory ranges of A and B).
 
@@ -127,10 +129,10 @@ From userspace, this is typically initiated via fsync or msync.
 
 In the previous section, we assumed that the different CPUs in the system could write to arbitrary PAs.
 
-The reality is more nuanced, as PA access is critical.
-First, allowing any userspace process to access any PA basically allows it to read any other process's data. Just for security reasons, we can't let that happen.
-Then, we saw in the previous sections that some PAs correspond to HW configuration ranges, and if mis-used, can cause HW faults which often just make the system immediately panic. For practicality, we also cannot let that happen.
-Finally, most programs are not meant to deal with PA itself. Physical memory management is a critical task of the kernel, and physical pages are usually allocated in a non-contiguous manner, on a page-per-page basis. Program often need to access large contiguous memory regions (like their whole 4MiB wide executable), and hence, have needs that are incompatible with how physical memory is intrinsicly managed by the kernel.
+The reality is more nuanced, as PA access is critical :
+- first, allowing any userspace process to access any PA basically allows it to read any other process's data. Just for security reasons, we can't let that happen.
+- then, we saw in the previous sections that some PAs correspond to HW configuration ranges, and if mis-used, can cause HW faults which often just make the system immediately panic. For practicality, we also cannot let that happen.
+- finally, most programs are not meant to deal with PA itself. Physical memory management is a critical task of the kernel, and physical pages are usually allocated in a non-contiguous manner, on a page-per-page basis. Program often need to access large contiguous memory regions (like their whole 4MiB wide executable), and hence, have needs that are incompatible with how physical memory is intrinsicly managed by the kernel.
 
 For all those reasons and others, code running on CPUs (whether it be kernel code or userspace code) does not operate with physical addresses directly.
 
@@ -148,16 +150,82 @@ Now let's add some details on how the CPUs will need to map memory to perform th
   - before reading data written by the storage interface, CPUs will need to invalidate the ranges for buffers A and B, so that when they read at those addresses, data is re-fetched from memory.
   - before instructing the storage interface to write to disk, CPUs will need to flush the ranges for buffers A and B, so that the writes made by CPUs is propagated to memory and observed by the storage interface. 
 
+To illustrate, here would be how the translation summary would look like for _just_ our example. Here we assume that we have 4KiB (0x1000b) pages, a 3 bytes virtual address space (0x1000000 bytes of addressable VA), a 2 bytes physical address space (0x10000 bytes of addressable PA), among which :  
+- the 7 first pages are mapped, and the remaining part of the PA space is not mapped.
+- the storage interface responds to transactions targetting the first page of PA.
+- the DRAM controller responds to transactions targetting the 4 next pages of PA.
+- another peripheral, the UART, responds to transactions targetting the next (and last) page of PA.
+
+{{< figure
+	src="images/bot/prv_va_pa_trs.svg"
+	caption="Translations in our example."
+	alt="prv sync"
+	>}}
+
+As one can expect :
+- one VA page maps the control range of the storage interface, and is used by CPUs to configure it to initiate disk transactions.
+- two VA pages map buffers A and B (let's assume that they are page-sized) who are located in DRAM, so that cpus can read and write the DRAM copy of the disk data. Note that both buffers have non-contiguous PA and VA locations. 
+- No one maps the UART.
+
+> The attentive reader may ask : how are CPUs executing any code ? 
+Indeed, code resides in memory somewhere in PA and hence, needs a dedicated VA mapping for CPUs to read it.
+In an effort to keep this diagram simple, I did not add this info, but in reality, there should be DRAM pages allocated to contain code, and a contiguous VA region that maps those PA pages.
+
+An important notion to remember is that if two CPUs run two user programs that want to access the same region of disk data, the CPUs may map exactly the same physical pages (buffers) allocated by the kernel under the hood. Or they may map different copies transparently made by the kernel. The next section will cover the modalities of this system. 
+
 ### MMAP 
 
-TODO rework this.
+So far, we know that :
+- the kernel handles storage operations (disk reads and writes) transparently on behalf of users, by allocating buffers and intiating disk read and write to / from those buffers via one of its driver that interacts with the storage interface.
+- upon completion of disk read requests, userland code can access those buffers by instructing the kernel to map those buffer in the user's virtual address space.
 
-The file system offers us multiple ways to configure how pages are mapped in one's virtual address space : 
-- mapping shareability : in our case it defines if we want to see the updates made by other entities to our page (map as shareable) or if we do not want to see them (map as private). Our system never involves pages where one entity will write, and where other entities do not want to see those writes. As such, we can avoid mwill avoid the expensive copy-on-write.
-- mapping permissions : in our case, it defines if one is able to write data in a page. Mapping a page as read-only will make write operations fault (which will lead to the killing of our process by the kernel, or at least to the generation of a SIGSEGV). It will also have an impact on the precautions employed by the kernel to manage the different mappings to this page. For example, multiple processes mapping the same page as private read-only will reduce the kernel's bookkeeping, as the kernel knows that it will never have to do copy-on-write maintenance for this page, as no one will write to it.  
+This section will elaborate on the second part.
 
+There are two ways for user code to access disk data : 
+- file operations like read, write, readat, writeat, et al. Those operations involve invoking the kernel and do not scale well in practice.
+- mapping the buffers managed by the kernel to contain disk data in userland and let user code read and write freely.
 
-TODO
+We will focus on the second method, and in particular, in the way users can configure the mapping made by the kernel.
+
+The main system call to map a file into userspace is mmap. It involves the following steps : 
+- user code make an open call to open the proper disk file and acquire its (shared) ownership.
+- user code calls mmap with chosen parameters so that the buffers managed by the kernel are mapped into its virtual address space.
+
+Not that the kernel does not necessarily need to read the entire disk file and populate all the DRAM buffers to contain all the file's data.
+Rather, it can choose to defer the disk reads to when the user code needs it : it will allocate a VA region of the size of the file in the user's virtual address space, and let the VA pages unmapped. When the user code will access those VAs, the HW will generate a translation fault, which will be handled by the kernel. The kernel will then put the user code to sleep, perform the disk read, and upon completion, resume the user process execution at the instruction that originally faulted.
+
+Mmap takes the following parameters :
+- permissions : condition the way user code can access the mapped data : 
+  - readability : if readable, user can perform memory reads on the mapped VA region; if not, it cannot. 
+  - writeability : if writeable, user can perform memory writes on the mapped VA region; if not, it cannot. 
+  - executability : if executable, user can branch to the mapped VA region and execute its content; if not, it cannot. 
+- shareability : condition if the running process sees disk writes from other programs and vice versa.
+  - private : the process sees its local copy of the file. It behaves exactly as if the kernel had read the whole file at map time and the user process was mapping this copy. In practice this is more nuanced that this as copying (potentially GiB-wide) files results in a huge memory consumption. The kernel likely implements Copy-on-Write (CoW) mechanisms to reduce the memory cost. Writes to this private copy will not be (natively) propagateable to disk.
+  - shareable: the process uses the kernel shared buffers and no private copy is used. Updates to those buffers will :
+    - be visible to any other process mapping the same buffers (i.e mapping the same portion of the same file) at some point.
+    - be propagated to disk when msync is called.
+
+> It is typically considered a security vulnerability to leave a VA range WE (write + execute) as it allows an attacker with write capabilities to escalate into arbitrary execution capabilities.
+
+> This article will not elaborate too much on how CoW works, but here is a simple (and probably suboptimal) way it can be achieved : when a process maps a file in private and this file is mapped by other processes, the kernel first disallows any writes to this file's shared buffers, then maps those in the process's virtual address space.
+Any write to those buffers (by anyone) will generate a translation fault which the kernel will handle by effectively duplicating the buffers, and map the copy in the virtual address space of the process that required private access.
+Other processes keep the shared buffers mapped.
+Once that's done, buffers writes are allowed again for both shared and private buffers.    
+
+### Performance considerations.
+
+The two biggest performance factors to consider when mapping a file are : 
+- do we need to write to the file ? If not, then we can map as readable and simplify the kernel's life, as it is guaranteed that we never modify the mapped buffers, which reduces its CoW implementation.
+- do we need to work on our local copy of the file, or is it acceptable to :
+  - observe updates made by to the file by other entities.
+  - have our own updates observed by other entities that map this file as shareable.
+
+If we choose to access the file in shareable, we have to deal with the following performance issues :
+- If someone else maps the same portion of the same file in private, we could see a perf hit when writes are performed for the first time on a page, due to the kernel's CoW implementation.  
+- If us and a remote entity access (read or write) the same locations, then the CPU's cache system needs to synchronize those accesses, leading to real-time perf hits. Any multiprocessing system where entities map the same underlying physical pages must be desigend in a way that minimizes the simultaneous access to those pages, or be prepared to pay a big performance cost otherwise.
+
+If we choose to access the file in private, we have to deal with the following peformance issue :
+- If someone else maps the file either in private or in shareable, then the same buffers may be mapped (via the kernel's CoW system) and we may experience random perf hits when us or another processes mapping the file writes to a CoW buffer. 
 
 ## Design
 
@@ -227,7 +295,7 @@ Since we must respect page alignment, the effective size of those arrays can be 
 
 (This uses the fact that PG_SIZ is a power of 2, so rounding down to it is just masking some bits, and that rounding a number N up to X is equivalent to rounding N + (X - 1) down to X.
 
-## Going further ; mapping, shareability, cache coherency and performance.
+## Going further : mapping, shareability, cache coherency and performance.
 
 As we covered in the file system section, whenever a local provider wants to read data for a given year of a given instrument, it will create if needed then open the file corresponding to this (year, instrument) and map its different sections in memory. 
 
