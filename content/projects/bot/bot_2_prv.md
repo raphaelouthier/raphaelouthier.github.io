@@ -62,15 +62,97 @@ After writing it, I decided to move it in a dedicated article that can be found 
 
 Please take the time to read it to get familiar with the concepts that the current design choice of the provider is based on.
 
+## File storage design
+
+### File structure, values, volumes.
+
+Data downloaded from the remote provider is stored in the file system, and mmap is used to efficiently access it.
+
+Since mmap prevents us to resize a file once mapped in memory : 
+- we need to store data in fixed-sized files.
+- we need to extend the files to their largest possible size at creation before the first mmap is done.
+
+My decision was to use a dedicated file per yer per instrument. One could use a different time base but one ultimately has to pick one.
+
+Each file contains data starting at Jan 1st 00:00:00 for the file's year, and contains all zero-padded data until the end of the year, one data element per minute :
+- if at a given minute no transaction happened, the data element is : 
+  - volume = 0;
+  - value = 0;
+- if at a given minute at least one transaction happened, the data element is : 
+  - volume = sum of all transactions volumes;
+  - value = average of all transaction values weighted by their volumes;
+
+Data is written in time order, starting at Jan 1st 00:00:00. An element at mid A cannot be written before all elements with mids B < A have been written.
+If an instrument has no data in a time range, volumes and values for this range are set to 0. 
+
+Each file is thus be divided into the following sections, which are be independenly mmap-ed by every provider needing to access the data that it contains : 
+- descriptor : identifies the file using the instrument name and the year.
+- sync : data used by multiple provides using this file to synchronize their writes.
+- volumes : the array of all volumes of transactions for each minute of this year. Expressed with f64s.
+- values : the array of all values of transactions for each minute of this year. Expressed with f64s.
+- prv_ids : another array containing an array index for each minute of this year. Expressed with u32s. Has a special purpose which is not needed to understand the structure of the provider. Described in a dedicated section at the end of the article if the reader is curious. 
+
+### Mapping attributes.
+
+As stated above, each file section is mmap-ed by every provider who needs to use its data. Let's recap how it is mapped and accessed.
+- descriptor : only written by the provider that creates the file. Mappable as read-only by every other provider. Could be mapped as private once we're sure that the provider that created the file has initialized the descriptor and called msync.
+- sync : is actively read and written using atomics by the different providers who use the file's data. Needs to be mapped as shareable read-write by everyone. 
+- volumes, values, prv_ids : is written in order, which causes those sections to be incrementally written. Only one page at a time is written and all others could be read-only. In practice to avoid the cost of TLB updates, all pages are writeable. All pages >= the currently written pages must be shared to observe writes from other providers. All pages < the currently written page could be remapped as private but this brings no benefit in practice since no one is supposed to write to those (or it is a bug). In practice, all those pages are mapped as shareable read-write. 
+
+### Sync 
+
+Since providers may use the same data at the same time, they may also need the same non-downloaded data at the same time.
+
+The shared section contains data that providers may need to read and write to coordinate themselves in accessing the file's data. In practice it contains : 
+- u8 `lck` : a lock which protectes the access to the two fields below.
+- u8 `wrt` : a flag reporting that someone is actively downloading writing data.
+- u64 `siz` : the number of elements that have been downloaded and written and can be feely read by anyone.
+
+One could say that since we assumed that all remote providers provide identical data, all local providers could then _just_ all download data independently and write them to the file sections that they all mapped as shared.
+
+This would work in practice but : 
+- is dirty (personal opinion).
+- would lead to unnecessary cache coherency latency for writes to the same locations. Those writes would ultimately write the same data, but the cache coherency system would probably not be aware of that and the perf hit could be noticeable.  
+- we would still need to synchronize the `siz` field of the sync data to ensure that it is monotonically increasing. Otherwise, a provider A could write a lot of data and increase it and another provider B, who started to write at the same time but downloded a smaller segment (but in a slower manner) could complete after, and update `siz` to a lesser value. This would force other providers to re-download and re-write data already written by A.  
+
+Hence, we need the sync section.
+
+Now, let's desribe a write sequence example that will show how multiple provides collaborate to download the same data and how they all end up seeing what other write :
+- Storage file only contains data for [Jan 1st 00:00:00, Jan 3rd 00:00:00[ (<= note the open bracket, we have no data for the end time).
+- Providers A and B want to read data for [Jan 10th 00:00:00, Jan 20th 00:00:00[
+- They both attempt to lock `lck` using atomics. The cache coherency system will ensure that exactly one acquires the lock.
+- Provider A succeeds. Provider B is blocked until A releases the lock. 
+- Provider A reads `siz` and sees that the data that it wants is not here. It will either have to download it or wait for another provider to do so.
+- Provider A sees that `wrt` is clear : no one is actively downloading data so provider A must do it itself.
+- Provider A sets `wrt` and releases `lck`.
+- Provider B is unblocked, acquires `lck`.
+- Provider B reads `siz` and sees that the data that it wants is not here. It will either have to download it or wait for another provider to do so.
+- Provider B sees that `wrt` is set : someone is actively downloading data so provider B must wait for it to complete.
+- Provider B releases `lck` and goes to sleep for some time. It will preiodically re-lock `lck` and check `siz` and `wrt` again to check if data is being downloaded or if it needs to do it itself.
+- Provider A downloads data, processes it and writes it to its locally mmap-ed sections. Updates are propagated to B by the cache coherency system.
+- Provider A attempts and succeeds in acquiring `lck`. It then clears `wrt`, updates `siz` to reflect its writes, and then releases `lck`.
+- Provider A then proceeds to read the data range that it was originally interested in.
+- Provider B wakes up and acquires `lck`. It then checks `siz` and notices that the data that it wants is now here. It releases `lck`.
+- Provider b then proceeds to read the data range that it was originally interested in.
+
+
 ## Design
+
+Let's take a look at what a system with two bots attempting to process years 2020 and 2021 of NVDA would look like. 
 
 {{< figure
 	src="images/bot/bot_prv_syn.svg"
-	caption="Data provider synchronization example."
+	caption="Structure of the data provider."
 	alt="prv sync"
 	>}}
 
-TODO
+On the top, we see the remote provider, used by bots to download data. 
+
+In the middle, we see our two bots. Each ultimately wants to create a buffer containing all volumes and values data for NVDA [2020, [2021[.
+
+Both boths have their own local provider, and they have opened the storage files containing NVDA data for 2020 and 2021. 
+
+On the bottom, we see a representation of those two files. 
 
 ## Storage file layout
 
@@ -85,7 +167,7 @@ TODO
 ├────────────┼──────────────┼───────────────────────────┤
 │            │              │  Sync data access lock    │
 │ PG_SIZ     │  Sync data   │  Write flag               │
-│            │              │  *Fill counter            │
+│            │              │  size counter             │
 ├────────────┼──────────────┼───────────────────────────┤
 │            │              │                           │
 │            │              │  Raw array of values      │
