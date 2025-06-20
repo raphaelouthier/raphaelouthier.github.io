@@ -136,7 +136,7 @@ Now, let's desribe a write sequence example that shows how multiple provides col
 - Provider b then proceeds to read the data range that it was originally interested in.
 
 
-## Design
+## Top level design
 
 Let's take a look at what a system with two bots attempting to process years 2020 and 2021 of NVDA would look like. 
 
@@ -148,7 +148,7 @@ Let's take a look at what a system with two bots attempting to process years 202
 
 On the top, we see the remote provider, used by bots to download data. 
 
-In the middle, we see our two bots. Each ultimately wants to create a buffer containing all volumes and values data for NVDA [2020, [2021[.
+In the middle, we see our two bots. Each ultimately wants to create a buffer containing all volumes and values data for NVDA [2020, 2021].
 
 Both boths have their own local provider, and they have opened the storage files containing NVDA data for 2020 and 2021. 
 
@@ -256,7 +256,7 @@ We can map the pages that we do not intend to modify (descriptor page + full dat
 
 Though, as writing to a full page of data (64KiB / 8 = 8192 minutes = 136 hours = 5 days worth of data) is relatively rare, one could disregard this perf hit.
 
-## going further : prv_ids
+## Going further : prv_ids
 
 As I mentioned before, there is a third array in our file storage, that has not been explained yet.
 
