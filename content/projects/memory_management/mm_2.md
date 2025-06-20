@@ -221,18 +221,26 @@ The allocation algorithm works as follows :
 
 The coalescing part (merge with neighbour) may be costly and so can be delayed, but may result in external fragmentation, as shown in the next diagram, leading to fragmentation.
 
+---
+
 {{< figure
 src="images/memory_management/heap.webp"
 caption="Visual representation : showing an allocation / free scenario of blocks of size N in a superblock of size 3 * N (with headers ignored for the sake of simplicity). Free areas are represented in green, allocated areas in grey. Numbers at the bottom represent the time line, referred to in the article as “steps”."
 >}}
 
-In steps 1 to 3, all blocks are allocated. Then, in steps 4 to 6, they are freed in a different order, with the middle block at last, and not coalesced, keeping 3 free blocks in cache. Then, an allocation is done again at step 7, which, depending on the caching mechanism, may provide the middle block.
+In steps **1 to 3**, all blocks are allocated.\
+Then, in steps **4 to 6**, they are freed in a different order, with the middle block at last, and not coalesced, 
+keeping 3 free blocks in cache. \
+Then, an allocation is done again at step **7**, which, depending on the caching mechanism, may provide the middle block.
+
 
 Though the amount of memory is available, an attempt to allocate a block of size \\(2 * N\\) will fail, as no contiguous block of this size is available.
 
-The same scenario with direct block coalescing is presented in steps 6’ and 7’, and solves this issue.
+The same scenario with direct block coalescing is presented in steps **6’** and **7’**, and solves this issue.
 
-Trade-offs of the heap allocator :
+---
+
+#### Trade-offs of the heap allocator
 
 - Supports all sizes that fit in a superblock.
 - Supports block allocation and free.
@@ -258,7 +266,7 @@ The stack allocator’s algorithm is the following :
 - **Get-position** : return the insertion position of the last superblock.
 - **Free** (position) : find the superblock the position belongs to, free all further superblocks, set the non-allocated zone of the superblock from the position to the superblock’s end, set the superblock as the last superblock.
 
-Trade-offs of the heap allocator :
+#### Trade-offs of the stack allocator
 
 - Supports all sizes that fit in a superblock.
 - Block free not supported.
