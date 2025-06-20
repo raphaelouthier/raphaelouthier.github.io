@@ -15,13 +15,17 @@ While writing an article about a component of my trading bot, I needed to explai
 
 This took more lines than what I originally had in mind, and it seemed relevant to put it in a dedicated article. 
 
-The original article can be found here.
+The original article can be found here :
 
-In the rest of this article :
-- PA will be used as an accronym for "Physical Address", aka the addresses used in actual memory transactions on the bus (see below).
-- VA will be used as an accronym for "Virtual Address", aka the addresses used by code running in CPUs.
+{{< article link="/projects/bot/bot_2_prv/" >}}
+
+{{< alert "circle-info"  >}}
+Acronymes used in the rest of this article :
+- **PA**  will be used as an accronym for "Physical Address", aka the addresses used in actual memory transactions on the bus (see below).
+- **VA** will be used as an accronym for "Virtual Address", aka the addresses used by code running in CPUs.
 
 The translation between the two and its impact will be covered in the next section. 
+{{< /alert >}}
 
 ## Storage device management.
 
