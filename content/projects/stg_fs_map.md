@@ -11,17 +11,30 @@ draft: true
 
 ## Introduction.
 
-While writing an article about a component of my trading bot, I needed to explain what mapping a file's content in memory actually means, and cover the various performance issues that arise when doing so.
+In this article, I will provide an exploration into the banal act of 
+mapping a file's content to memory. Behind this simple act lies a trove of 
+hidden complexities that have very concrete impact on code performance.
 
-This took more lines than what I originally had in mind, and it seemed relevant to put it in a dedicated article. 
+Once again, deepening our understanding of how this works also unlocks a new
+set of design consideration leading to potenciel optimization techniques. \
+And giving such an overview of this topic is exactly the aim of this article.
 
-The original article can be found here.
+#### *Context*
+*While writing an article about a component of my trading bot, I needed to explain what mapping a file's content in memory actually means, and cover the various performance issues that arise when doing so.*
 
-In the rest of this article :
-- PA will be used as an accronym for "Physical Address", aka the addresses used in actual memory transactions on the bus (see below).
-- VA will be used as an accronym for "Virtual Address", aka the addresses used by code running in CPUs.
+*Since this explaination ended up taking more lines than what I originally had in mind and it seemed relevant to other topics, I decided to break this up into a dedicated article.* 
+
+*The original article can be found here :*
+
+{{< article link="/projects/bot/bot_2_prv/" >}}
+
+{{< alert "circle-info"  >}}
+Acronymes used in this article :
+- **PA**  will be used as an accronym for "Physical Address", aka the addresses used in actual memory transactions on the bus (see below).
+- **VA** will be used as an accronym for "Virtual Address", aka the addresses used by code running in CPUs.
 
 The translation between the two and its impact will be covered in the next section. 
+{{< /alert >}}
 
 ## Storage device management.
 
@@ -30,11 +43,12 @@ First, let's cover how the kernel manages storage devices (disks).
 **Some facts first.**
 
 Processors are distributes system with many components, among them :
-- multiple CPUs, which need to access DRAM.
-- multiple peripherals (Ethernet interface, USB interface, PCIE interface) that (in broad terms) are meant to be programmed by CPUs and that in some cases must access DRAM. 
-- multiple DRAM slots.
+- multiple **CPUs**, which need to access DRAM.
+- multiple **peripherals** (Ethernet interface, USB interface, PCIE interface) that (in broad terms) are meant to be programmed by CPUs and that in some cases must access DRAM. 
+- multiple **DRAM** slots.
 
-The solution to make those entities interact with each others in an unified way is to introduce another entity, the interconnect, abusively called "memory bus" in all this chapter, which connect them all.
+In order to make this different components interact with each others in an unified way, we introduce another component, the **interconnect**, abusively called "memory bus" in all this chapter. 
+It's role is to connect them all.
 In particular : 
 - it defines the notion of physical address.
 - connected clients can be masters (can initiate transactions), slaves (can process transactions) or both. 
