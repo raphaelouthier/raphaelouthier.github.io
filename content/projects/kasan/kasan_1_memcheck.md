@@ -1,9 +1,9 @@
 ---
-title: "Memory checking."
+title: "Micro-KASAN : Memory checking."
 summary: "General memory checking considerations."
-series: ["KASAN"]
+series: [uKASAN]
 series_order: 1
-categories: ["KASAN"]
+categories: [uKASAN]
 #externalUrl: ""
 showSummary: true
 date: 2023-10-03

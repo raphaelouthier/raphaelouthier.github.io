@@ -1,9 +1,9 @@
 ---
-title: "KASAN memory management."
+title: "Micro-KASAN : KASAN memory management."
 summary: "How KASAN manages memory."
-series: ["KASAN"]
+series: [uKASAN]
 series_order: 5
-categories: ["KASAN"]
+categories: [uKASAN]
 #externalUrl: ""
 showSummary: true
 date: 2023-11-09

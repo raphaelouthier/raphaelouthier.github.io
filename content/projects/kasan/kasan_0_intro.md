@@ -1,9 +1,9 @@
 ---
-title: "KASAN Introduction."
+title: "Micro-KASAN : Introduction."
 summary: "Valgrind on a microcontroller."
-series: ["KASAN"]
+series: [uKASAN]
 series_order: 0
-categories: ["KASAN"]
+categories: [uKASAN]
 #externalUrl: ""
 showSummary: true
 date: 2023-09-27
@@ -18,7 +18,7 @@ This series of articles will focus on how to implement a `KASAN` (or a memory ac
 The introduction is a reflection of my personal opinions and of the motivations that lead me to implement my `KASAN`.
 The reader may find it cleaving, but they should find the rest of the article more technically oriented.
 
-## The need for a proper debug infrastructure.
+## The need for a proper debug infrastructure
 
 Recently my wonderful wife designed and offered me the greatest present a kernel developer could imagine : a custom development board with a builtin `SWD` interface.
 

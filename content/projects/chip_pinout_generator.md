@@ -201,7 +201,7 @@ A and B are the two factors that were previously mentioned to make the complexit
 
 Those are the places where we must optimize things, by reducing the exploration space. Though, we cannot afford to remove a potential solution for the sake of speed. We must ensure that we only remove invalid configurations from the exploration space.
 
-## Peripheral types.
+## Peripheral types
 
 In the next sections, when the expression "for exploration purposes" or "FEP" is used, it means "given the current optimizations we found for the exploration". For example, a signal S can be connectable to a pin P, that is guaranteed to be connected to another signal in every valid combination. In this case, S will be considered disconnected from P for exploration purposes.
 

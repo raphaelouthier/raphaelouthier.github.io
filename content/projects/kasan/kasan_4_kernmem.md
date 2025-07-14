@@ -1,9 +1,9 @@
 ---
-title: "Kernel memory management."
+title: "Micro-KASAN : Kernel memory management."
 summary: "How the kernel manages primary memory."
-series: ["KASAN"]
+series: [uKASAN]
 series_order: 4
-categories: ["KASAN"]
+categories: [uKASAN]
 #externalUrl: ""
 showSummary: true
 date: 2023-11-03
@@ -119,7 +119,7 @@ For the region manager, a page will be either :
 - not accessible : the page hasn't been allocated to any user of the region manager and should _never_ be accessed by anyone.
 - accessible : the page has been allocated to a secondary allocator, who may access it, and provide access to portions of it to users.
 
-## Secondary allocators.
+## Secondary allocators
 
 As described in the previous section, the region manager's job is to manage memory regions.
 

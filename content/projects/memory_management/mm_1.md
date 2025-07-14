@@ -1,5 +1,5 @@
 ---
-title: "Memory Manager : Part 1"
+title: "Memory Manager : Primary allocators."
 summary: "The primary memory manager"
 series: ["Memory Management"]
 series_order: 1
@@ -8,10 +8,9 @@ categories: ["Kernel", "Memory Management", "C", "Operating Systems"]
 showSummary: true
 date: 2021-09-19
 showTableOfContents : true
-draft: true
 ---
 
-### Introduction
+## Introduction
 
 In the previous chapter we defined the base characteristics of the system managed by a memory manager. Additionally, we also defined the primary memory manager as the sub-system of the memory manager responsible for :
 - **referencing** primary memory blocks.
@@ -35,7 +34,7 @@ src="images/memory_management/ram.webp"
 caption="Credits : Photo by Hanisch from FreeImages"
 >}}
 
-### DMA and the need for memory zones
+## DMA and the need for memory zones
 
 In the first chapter we described physical memory as an uniform resource with no other differentiating characteristics apart from it the NUMA node dimension. This was an oversimplification, and in order to better explain how things really work we need to introduce the concept of Direct Memory Access.
 
@@ -62,7 +61,7 @@ Linux systems generally exhibit the following zones :
 - DMA16 : primary memory with 16 bits addresses.
 - DMA32 : primary memory with 32 bits addresses.
 - NORMAL : primary memory used by regular software.
-- [HIGHMEM](https://www.kernel.org/doc/html/latest/vm/highmem.html) : not the subject of this article.
+- HIGHMEM : primary memory that cannot be permanently mapped in kernel space.
 
 Each zone will have its own primary memory allocator.
 
@@ -70,20 +69,17 @@ Additional details :
 - [Describing Physical Memory | The Linux Kernel documentation](https://www.kernel.org/doc/gorman/html/understand/understand005.html?source=post_page-----4f7c6f341f38---------------------------------------)
 
 Exploring the HIGHMEM concept :
-- [High Memory Handling | The Linux Kernel documentation](https://www.kernel.org/doc/html/latest/vm/highmem.html?source=post_page-----4f7c6f341f38---------------------------------------)
+ndocumentation
 - [What are high memory and low memory on Linux? | Unix Stack Exchange](https://unix.stackexchange.com/questions/4929/what-are-high-memory-and-low-memory-on-linux?source=post_page-----4f7c6f341f38---------------------------------------)
 - [An end to high memory? | lwn.net](https://lwn.net/Articles/813201/?source=post_page-----4f7c6f341f38---------------------------------------)
 
-### NUMA and the need for a memory manager per node
+## NUMA and the need for a memory manager per node
 
 As defined in the previous chapter, a node is a conceptual set containing memory banks and cores. The respective nodes of a core and a memory bank are the only information the OS uses to determine the latency of the access from a core to the memory bank.
 
 This latency information is fundamental for the primary memory manager, as its role is to provide memory to all different cores. Its objective will be to provide to each core primary memory that will be optimized for the smallest access latency. All whilst respecting external constraints such as the zone the primary memory must be part of.
 
-To achieve this, the memory manager must be decentralised :
-<div style="text-align: center;font-weight: 600;">
-each node will have its own memory manager
-</div>
+To achieve this, the memory manager must be decentralised, and each node will have its own memory manager.
 
 This node memory manager will have a set of zones, and each zone will have it’s own primary memory allocator. Each core will know the node it belongs to, and so, will query the related node’s manager for allocation / deallocation of primary memory. The node manager will then transfer the request to the primary memory allocator of the related zone.
 
@@ -92,7 +88,7 @@ More details on NUMA :
 - [Non-uniform memory access | Wikipedia](https://en.wikipedia.org/wiki/Non-uniform_memory_access?source=post_page-----4f7c6f341f38---------------------------------------)
 - [Understanding NUMA Architecture](https://linuxhint.com/understanding_numa_architecture/?source=post_page-----4f7c6f341f38---------------------------------------)
 
-### NUMA Fallback 
+## NUMA Fallback 
 
 The procedure described in the previous paragraph raises the question : what if the selected zone allocator runs out of memory ?
 
@@ -120,7 +116,7 @@ Additional details ( if you dare ):
 - [mmzone.h - include/linux/mmzone.h - Linux source code (v5.14.6) | Bootlin](https://elixir.bootlin.com/linux/latest/source/include/linux/mmzone.h?source=post_page-----4f7c6f341f38---------------------------------------#L490)
 - [mm_types.h - include/linux/mm_types.h - Linux source code (v4.6) | Bootlin](https://elixir.bootlin.com/linux/v4.6/source/include/linux/mm_types.h?source=post_page-----4f7c6f341f38---------------------------------------)
 
-### Primary memory dispatch
+## Primary memory dispatch
 
 When the system boots, primary memory blocks positions and sizes are either :
 
@@ -136,7 +132,7 @@ The memory manager must then forward it to the primary allocator of the zone tha
 
 Anyway, the zone primary memory allocator only ends up with blocks of memory that concern it.
 
-### Page cache
+## Page cache
 
 Pages are the base granule for address space mapping. When a process requires any type of memory (stack, heap, file mapping, memory mapping), it calls the kernel so that the latter can allocate it the required number of pages and then configure the virtual address space to map a contiguous block of virtual memory to these allocated pages.
 
@@ -146,15 +142,14 @@ If a page is used by a core, because of how the core’s cache system exploits t
 
 As a consequence, it may be interesting for the memory manager to implement a per-core page cache sorting pages by recency to exploit this temporal locality to its fullest : a core requiring a page now looks into its page cache and if empty, allocates a page using its node’s allocator. When the core frees a page, it puts it in its cache for future reuse, and eventually frees the oldest page in cache if the cache is full.
 
-### Primary memory allocator : the buddy allocator
+## Primary memory allocator : the buddy allocator
 
 Now that we have described in detail the objectives of the primary memory allocator, let us give a more practical example with a description of one of its possible and most widely known implementations : the buddy allocator.
 
 To solve the primary memory allocation / free problem efficiently, we will first add two constraints :
 
 - the allocator must only support allocation and free of page blocks containing a number of pages that are a power of two. This is the core characteristic of the buddy allocator algorithm.
-
-the size of the block must be provided at both allocation `(void *alloc(size_t size))` and free `(void free(void *ptr, size_t size))`. This will avoid the need to store block sizes alongside the block as metadata.
+- the size of the block must be provided at both allocation `(void *alloc(size_t size))` and free `(void free(void *ptr, size_t size))`. This will avoid the need to store block sizes alongside the block as metadata.
 
 A solution to this problem with these constraints is provided by the well known Buddy Allocator algorithm.
 
@@ -165,7 +160,7 @@ As the Buddy Allocator has already been very well described in many other articl
 The main working principles behind this algorithm is to :
 {{< katex >}}
 - define valid blocks as blocks of size \\(2^i\\) page, aligned with their own size.
-- observe that given a block with two neighbours of its own size, there is only one it can be merged with to form a valid block. We call this block its ‘buddy’.
+- observe that given a block with two neighbours of its own size, there is only one other block that it can be merged with to form a valid block of the closest greater size. We call this block its ‘buddy’.
 - reference valid free blocks by order \\(log2(size)\\) in a cache, i.e. a linked list array : the list at index i references valid free blocks of size \\(2^{(i + page order)}\\). Free blocks are used to contain their own metadata, including the linked list node that references them.
 - When a new primary memory block is received, divide it into a set of valid free blocks, as big as possible, and reference these blocks in the cache.
 
@@ -191,13 +186,13 @@ Documentation :
 - [The Buddy System Algorithm | Linux Kernel Reference](https://www.halolinux.us/kernel-reference/the-buddy-system-algorithm.html?source=post_page-----4f7c6f341f38---------------------------------------)
 - [Buddy memory allocation | Wikipedia](https://en.wikipedia.org/wiki/Buddy_memory_allocation?source=post_page-----4f7c6f341f38---------------------------------------)
 
-### Secondary allocation
+## Secondary allocation
 
 Though the detailed overview of secondary allocation algorithms is reserved for further chapters, it is necessary to mention it here to better understand where it fit’s in the whole memory manager.
 
 Whereas the primary memory allocator is in charge of the allocation of pages and larger blocks, the secondary allocators handle the allocation of small and intermediate blocks. This secondary allocator will use memory provided by the primary memory manager. This secondary allocator is node-centric : each node will have a secondary allocator using the node’s NORMAL zone as a superblock provider.
 
-### Memory manager architecture
+## Memory manager architecture
 
 The architecture that we described in this chapter is summarised in the following diagram with an example.
 
@@ -218,7 +213,7 @@ Each none has its own secondary allocator, using primary memory provided by the 
 
 Each core uses the primary memory provided by its node, which forwards the allocation request to the required zone.
 
-### Conclusion
+## Conclusion
 
 After this chapter, we have provided both a high-level view of a memory manager supporting the constraints of the system we defined, and a presentation of one of the most known primary memory allocation algorithms.
 

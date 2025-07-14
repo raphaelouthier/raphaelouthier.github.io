@@ -1,9 +1,9 @@
 ---
-title: "ARM Thumb Emulator."
+title: "Micro-KASAN : ARM Thumb Emulator."
 summary: "Executing instruction the way it should not be done."
-series: ["KASAN"]
+series: [uKASAN]
 series_order: 6
-categories: ["KASAN"]
+categories: [uKASAN]
 #externalUrl: ""
 showSummary: true
 date: 2023-11-15
@@ -122,7 +122,7 @@ The spec has downsides though :
 - Bit values within fields are represented using multiple notations (0, 1, '', 'Z', 'N') and lack a bit of structure. When writing your parser, you will discover most of these corner cases the hard way.
 - some instructions use values derived from MULTIPLE fields (ex : imm3:imm8). I searched a lot and I couldn't find any machine-readable information that would allow us to automatically generate code to do those combinations automatically. For now, the emulation functions will have to take care of that.
 
-# Going crazy : generating our decoder automatically.
+# Going crazy : generating our decoder automatically
 
 Using the instruction representation provided by the python script, it was easy and fun to write a small program that generates a C decoder using this representation. The program proceeds the following way : 
 - it reads the description of each instruction to decode.

@@ -8,7 +8,6 @@ categories: ["Trading bot"]
 showSummary: true
 date: 2025-06-10
 showTableOfContents : true
-draft: true
 ---
 
 
@@ -74,7 +73,7 @@ The same way a kernel aims to provide performant access to shared resources, my 
 
 But enough with the warnings, let's get started.
 
-## Fundamental objectives.
+## Fundamental objectives
 
 First let's state the very basic objectives of our trading bot.
 

@@ -1,5 +1,5 @@
 ---
-title: "Memory Managers : Introduction"
+title: "Memory Managers : Introduction."
 summary: "General considerations on memory and memory managers."
 series: ["Memory Management"]
 series_order: 0

@@ -1,9 +1,9 @@
 ---
-title: "Hardware."
+title: "Micro-KASAN : Hardware."
 summary: "What our KASAN will run on."
-series: ["KASAN"]
+series: [uKASAN]
 series_order: 2
-categories: ["KASAN"]
+categories: [uKASAN]
 #externalUrl: ""
 showSummary: true
 date: 2023-10-10

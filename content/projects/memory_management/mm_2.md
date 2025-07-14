@@ -1,5 +1,5 @@
 ---
-title: "Memory Manager : Part 2"
+title: "Memory Manager : Secondary allocators."
 summary: "Secondary allocator"
 series: ["Memory Management"]
 series_order: 2

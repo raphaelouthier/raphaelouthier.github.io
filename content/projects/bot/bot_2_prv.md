@@ -8,7 +8,6 @@ categories: ["Trading bot"]
 showSummary: true
 date: 2025-06-19
 showTableOfContents : true
-draft: true
 ---
 
 
@@ -52,7 +51,7 @@ In practice, this means that our disk storage stores data in contiguous arrays w
 
 My proposal for the design answering those three constraints uses the file system and its memory mapping capabilities as storage medium. To understand why, let's cover how modern operating systems manage disk storage and file memory mapping in a simplified way.
 
-## Architectural and kernel concepts.
+## Architectural and kernel concepts
 
 The content of this section originally covered the following things :
 - how modern OSes manage storage devices like SATA disks.
@@ -65,7 +64,7 @@ Please take the time to read it to get familiar with the concepts that the curre
 
 ## File storage design
 
-### File structure, values, volumes.
+### File structure, values, volumes
 
 Data downloaded from the remote provider is stored in the file system, and mmap is used to efficiently access it.
 
@@ -93,7 +92,7 @@ Each file is thus be divided into the following sections, which are be independe
 - values : the array of all values of transactions for each minute of this year. Expressed with f64s.
 - prv_ids : another array containing an array index for each minute of this year. Expressed with u32s. Has a special purpose which is not needed to understand the structure of the provider. Described in a dedicated section at the end of the article if the reader is curious.
 
-### Mapping attributes.
+### Mapping attributes
 
 As stated above, each file section is mmap-ed by every provider who needs to use its data. Let's recap how it is mapped and accessed.
 - descriptor : only written by the provider that creates the file. Mappable as read-only by every other provider. Could be mapped as private once we're sure that the provider that created the file has initialized the descriptor and called msync.
@@ -224,7 +223,7 @@ Since we must respect page alignment, the effective size of those arrays can be 
 
 (This uses the fact that PG_SIZ is a power of 2, so rounding down to it is just masking some bits, and that rounding a number N up to X is equivalent to rounding N + (X - 1) down to X.
 
-## Going further : mapping, shareability, cache coherency and performance.
+## Going further : mapping, shareability, cache coherency and performance
 
 As we covered in the file system section, whenever a local provider wants to read data for a given year of a given instrument, it creates (if needed) then opens the file corresponding to this (year, instrument) and maps its different sections in memory.
 

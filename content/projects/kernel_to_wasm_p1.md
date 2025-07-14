@@ -1,5 +1,5 @@
 --- 
-title: "Joys of porting a kernel to WebAssembly, Part 1" 
+title: "Joys of porting a kernel to WebAssembly, Part 1." 
 summary: "In-process kernels, WebAssembly and their difficulties to cohabitate."
 tags: ["C","wasm","Emscripten", "Kernel","Web Development", "Webassembly","gnu",] 
 #externalUrl: "" 

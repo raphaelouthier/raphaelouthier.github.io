@@ -1,9 +1,9 @@
 ---
-title: "KASAN structure."
+title: "Micro-KASAN : KASAN structure."
 summary: "KASAN in details."
-series: ["KASAN"]
+series: [uKASAN]
 series_order: 3
-categories: ["KASAN"]
+categories: [uKASAN]
 #externalUrl: ""
 showSummary: true
 date: 2023-10-15
@@ -142,7 +142,7 @@ The related assembly code is :
 
 
 ```C
-# Enter kasan.
+# Enter kasan
 # Receives 4 args at most :
 # - hdl : function to call, receives at most 4 args.
 # - arg0 : first arg to pass to hdl.

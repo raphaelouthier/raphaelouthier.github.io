@@ -1,5 +1,5 @@
 --- 
-title: "Joys of porting a kernel to WebAssembly, Part 2" 
+title: "Joys of porting a kernel to WebAssembly, Part 2." 
 summary: "WebAssembly, or why the toolchain matters."
 tags: ["C","wasm","Emscripten", "Kernel","Web Development", "Webassembly","gnu",] 
 #externalUrl: "" 

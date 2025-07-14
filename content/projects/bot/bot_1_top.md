@@ -8,7 +8,6 @@ categories: ["Trading bot"]
 showSummary: true
 date: 2025-06-13
 showTableOfContents : true
-draft: true
 ---
 
 
@@ -16,7 +15,7 @@ The previous chapter of this series presented the different software components 
 
 As we saw in this chapter, the central part of this trading system is the trading core, which runs our strategies, either in real time for actual trading, or in simulation for backtesting.
 
-## The full picture.
+## The full picture
 
 For the record and to illustrate before diving in, here is a full diagram of the trading core, presenting its components and the entities it interacts with.
 
@@ -77,7 +76,7 @@ I made the choice of relying heavily on file system import and export to save th
 
 Since order passing (whose intricacies with the portfolio are described below) is relatively rare in a system with a response period of one minute, it is acceptable to completely export the portfolio to disc before and after updating (passing, completing, cancelling) any order. This way (and with the careful export of the remaining trading core components at the same time), if the trading core faults for some reason, the previously exported (and valid) state of the portfolio can be used when restarting the trading core, and the asset accounting system is not in danger.
 
-## Order passing, and assets usage.
+## Order passing, and assets usage
 
 One of the fundamental goals of the trading core is to pass (profitable) orders to the broker.
 
@@ -116,7 +115,7 @@ It consists on a routine called periodically, which does three things :
 As stated before, trade sequences are not implemented by strategies themselves. They use a generic algorithm, and strategies only provide their own configurations for the generic trade sequence.
 Their involvement in the trading core hence stops here.
 
-## General considerations on the provider.
+## General considerations on the provider
 
 This section will not describe the provider in a technical manner, as this will be done in a dedicated chapter.
 
@@ -154,7 +153,7 @@ Hence, we must design the local provider in a semi-clever way so that :
 
 The actual implementation of the local provider is surprisingly simple in terms of number of lines, but has a high conceptual/nb_of_lines ratio. Many design choices do impact the overall perf, and this, the local provider implementation will be covered in a dedicated article.
 
-## Local broker, remote broker, simulation broker.
+## Local broker, remote broker, simulation broker
 
 We will use the words local and remote to qualify brokers the same way we did to qualify providers.
 
@@ -175,7 +174,7 @@ It uses the local data provider to query the price of an instrument target of an
 
 It inherently assumes that the orders that are passed by the trading core have no effect on the effective prices, which as of last time I checked my bank account, sounds like a reasonable assumption for a bot using it.
 
-## Backtesting.
+## Backtesting
 
 As a reminder, the trading core has two operation modes :
 - real-time where real orders are passed.
