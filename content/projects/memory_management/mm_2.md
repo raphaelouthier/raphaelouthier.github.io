@@ -8,18 +8,18 @@ categories: ["Kernel", "Memory Management", "C", "Operating Systems"]
 showSummary: true
 date: 2021-09-21
 showTableOfContents : true
-draft: true
 ---
+
 
 ### Introduction
 
-In the previous chapters, we defined the base characteristics of the system supervised 
-by the memory manager, and we detailed the structure of such memory managers with a 
-focus on the primary memory management.
+In the previous chapters, we defined the base characteristics of the system supervised
+by the memory manager, and we detailed the structure of such memory managers with a
+focus on primary memory management.
 
 In this chapter we aim to explore the secondary memory manager but, detailing secondary memory management
  will require a different approach, as it is less constrained by the characteristics of the system.
-Since the primary memory manage is responsible for managing and supervising the 
+Since the primary memory manager is responsible for managing and supervising the
 allocation of primary memory it abstracts all the details of the system for the secondary memory manager and provides a high level page block allocation / free API.
 
 The secondary memory management can be defined as:
@@ -33,7 +33,7 @@ src="images/memory_management/diskette.webp"
 caption="Photo credit : Photo by pipp from FreeImages"
 >}}
 
-### Allocation types, the detailed version 
+### Allocation types, the detailed version
 
 The secondary allocator is the allocator the end-user accesses to obtain and recycle its memory.
 
@@ -52,7 +52,7 @@ For block sizes which are less frequently used are thus less critical, we can :
 - allow slower allocation methods.
 - require methods to maximise the use of allocated superblocks to avoid fragmentation.
 
-#### Real world experiment 
+#### Real world experiment
 
 Let’s use an experiment to classify such ranges.
 
@@ -66,7 +66,7 @@ Finally, I determined the amount of allocation of each size and compounded the r
 
 <iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSISxipUdgWH-1foxUlx5Z-rxbsQac0aapdLH96IJHcdLXxTU9gBu0BT_RUfVsTSxLV7WKDnsU63q7N/pubchart?oid=628429022&amp;format=interactive"></iframe>
 
-Same data using a log scale on the Y axis : 
+Same data using a log scale on the Y axis :
 
 <iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSISxipUdgWH-1foxUlx5Z-rxbsQac0aapdLH96IJHcdLXxTU9gBu0BT_RUfVsTSxLV7WKDnsU63q7N/pubchart?oid=742091593&amp;format=interactive"></iframe>
 
@@ -87,23 +87,23 @@ The small blocks type is, as a consequence, the allocation type on which I must 
 {{< katex >}}
 
 A Slab allocator receives superblocks (aka : page blocks), from the primary memory manager,
- and treats them as arrays of blocks of a constant size \\(N\\), that it frees and allocates to its 
-users. 
+ and treats them as arrays of blocks of a constant size \\(N\\), that it frees and allocates to its
+users.
 <p style="text-align:center; font-weight: 600;">
 It can only allocate blocks of this size.
 </p>
 
-Each superblock has a header that keeps track of the number of 
-its blocks that are allocated or in the allocator’s cache, and of the non-allocated zone, 
+Each superblock has a header that keeps track of the number of
+its blocks that are allocated or in the allocator’s cache, and of the non-allocated zone,
 i.e. the zone of the superblock that contains only non-allocated blocks.\
 When the superblock is allocated, this zone occupies the whole superblock. \
 When the superblock must allocate one block, the first block of the zone is allocated, and the zone is truncated with this block.
 
-Each superblock also has a cache (i.e. linked list) that references all its free blocks that 
+Each superblock also has a cache (i.e. linked list) that references all its free blocks that
 are not in the non-allocated zone or in the allocator’s cache.\
 The allocator also has a cache (i.e linked list) that references free blocks of all superblocks that are not in their superblock’s cache or non-allocated zone.
 
---- 
+---
 
 The slab works the following way :
 
@@ -127,7 +127,7 @@ For each block in the allocator’s cache :
 
 - Any superblock with no allocated blocks can be freed.
 
---- 
+---
 
 The slab is one of the simplest and most fundamental allocator as it is **freestanding**, all the metadata it uses can be stored in the superblocks or statically :
 
@@ -146,7 +146,7 @@ The slab is one of the simplest and most fundamental allocator as it is **freest
 
 {{< figure
 src="images/memory_management/slab.webp"
-caption="Visual representation of the internal structure of the slab.The diagram shows a system with two allocated superblocks, each one with its own non-allocated zone in yellow, and multiple allocated blocks in red, and multiple blocks in the allocator’s cache (in cyan), and multiple blocks in their slab’s cache. The rightmost superblock’s non allocated zone could be enlarged."
+caption="Visual representation of the internal structure of the slab.The diagram shows a system with two allocated superblocks, each one with its own non-allocated zone in yellow, and multiple allocated blocks in red, and multiple blocks in the allocator’s cache (in cyan), and multiple blocks in their slab’s cache. The rightmost superblock’s non-allocated zone could be enlarged."
 >}}
 
 ### Slabs
@@ -165,13 +165,13 @@ caption="Visual representation of the nuance between size and order increment."
 
 With \\(base size\\) and \\(size step\\), or \\(base order\\) and \\(order step\\) being parameters of the resulting allocator.
 
-When a request for memory is received by the slab array’s handler, in order to get the appropriately sized memory, 
-this request must be forwarded to the appropriate slab. In order to meet the constraint on the size of the requested 
-memory the slabs array only forwards allocation and free requests to the slab allocating blocks of the **smallest greater 
+When a request for memory is received by the slab array’s handler, in order to get the appropriately sized memory,
+this request must be forwarded to the appropriate slab. In order to meet the constraint on the size of the requested
+memory the slabs array only forwards allocation and free requests to the slab allocating blocks of the **smallest greater
 or equal size**. \
 This imposes the additional constraint that **the size of the block must be provided** both at allocation and free time.
 
-#### Trade-offs of the slabs array 
+#### Trade-offs of the slabs array
 
 - Only allocates blocks of a size range.
 - No block header -> no extra memory consumption.
@@ -179,7 +179,7 @@ This imposes the additional constraint that **the size of the block must be prov
 - Very fast allocation and free (time of the selection of the slab and the slab operation).
 - Freestanding, if the amount of slabs of the array is known at compile-time.
 
-#### Heap 
+#### Heap
 
 The secondary allocators described in the previous sections are very time-efficient, but suffer from the issue of superblock fragmentation that I have described before : once a superblock is allocated, it can only serve as a memory reserve for blocks of a fixed size. If I allocate a block of size 2 only once and never again, and free it in a long time, it will cause a whole superblock to be allocated for an used amount of 2 bytes, thus causing a loss of 4094 (if 4KiB pages), the superblock being dedicated to this size.
 
@@ -214,7 +214,7 @@ Another piece of information that the header should contain is either the binary
 
 The allocation algorithm works as follows :
 
-- **Allocation** (size \\(N\\)) : search for a free block of size \\(M >= N\\) in the cache. If the remaining size 
+- **Allocation** (size \\(N\\)) : search for a free block of size \\(M >= N\\) in the cache. If the remaining size
 \\(M — N\\) can contain a block header and a memory block of the minimal size, split the block in two, one of size \\(N\\)
  and the other occupying the remaining part. Then return the first part of the split block if split, or the selected block otherwise.
 - **Free** : retrieve the block header, and attempt to merge it with its successor and its predecessor if they exist and are free. Then, insert the resulting block in the allocator’s cache using its size.
@@ -229,7 +229,7 @@ caption="Visual representation : showing an allocation / free scenario of blocks
 >}}
 
 In steps **1 to 3**, all blocks are allocated.\
-Then, in steps **4 to 6**, they are freed in a different order, with the middle block at last, and not coalesced, 
+Then, in steps **4 to 6**, they are freed in a different order, with the middle block at last, and not coalesced,
 keeping 3 free blocks in cache. \
 Then, an allocation is done again at step **7**, which, depending on the caching mechanism, may provide the middle block.
 
@@ -244,7 +244,7 @@ The same scenario with direct block coalescing is presented in steps **6’** an
 
 - Supports all sizes that fit in a superblock.
 - Supports block allocation and free.
-- Block size not required at block free.
+- Block size is not required at block free.
 - Block header -> extra memory consumption.
 - Block header -> no alignment guarantees except for the fundamental order. Aligned allocation is possible but requires more metadata or allocation time.
 - Allocation and free are slower than other methods due to block split and coalescing.
@@ -313,7 +313,4 @@ This causes a small memory overhead (at most one cache line per page size) negle
 This chapter concludes this series on memory management.
 
 After reading this, you should have acquired a solid understanding of the mechanisms involved in system memory management, that transparently occur when an end-user requests a memory allocation or free.
-
-
-
 
