@@ -1,6 +1,6 @@
 --- 
 title: "Chip pinout generator" 
-summary: "A rather-not-smart but efficient way of connecting your PCBs."
+summary: "A non-smart but efficient way of connecting your PCBs."
 categories: ["C","KiCAD",] 
 #externalUrl: "" 
 showSummary: true
