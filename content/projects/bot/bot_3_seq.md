@@ -1,4 +1,3 @@
-
 ---
 title: "Trading bot : trade sequence."
 summary: "How the trading bot trades."
@@ -9,6 +8,7 @@ categories: ["Trading bot"]
 showSummary: true
 date: 2025-07-19
 showTableOfContents : true
+draft: false 
 ---
 s chapter elaborates on how the algorithm that passes orders given the prediction made by a strategy.
 

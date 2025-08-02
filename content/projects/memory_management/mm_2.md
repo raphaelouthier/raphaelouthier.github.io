@@ -8,6 +8,7 @@ categories: ["Kernel", "Memory Management", "C", "Operating Systems"]
 showSummary: true
 date: 2021-09-21
 showTableOfContents : true
+draft: false 
 ---
 
 

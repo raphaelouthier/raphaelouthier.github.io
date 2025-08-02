@@ -1,6 +1,8 @@
 --- 
 title: "TurboJSON : JSON basics." 
 summary: "Bases on JSON and how to parse it semi-efficiently."
+series: ["Json optimization"]
+series_order: 0
 categories: ["C","ARM64","Optimization"] 
 #externalUrl: "" 
 showSummary: true
@@ -9,7 +11,7 @@ showTableOfContents : true
 draft: false 
 ---
 
-{{< figure src="images/jsn.png" >}}
+{{< figure src="images/jsn_0_head.png" >}}
 
 
 ## Context
@@ -238,9 +240,30 @@ user    0m0.573s
 sys     0m0.017s
 ```
 
+> The reader may wonder as I did why the python side spends so much system time compared to mine. As you can see in the C code, I'm mmap-ing the whole JSON file in RAM for simplicity, which also has the benefit of not relying on `fread` constantly. It's possible that the python side does rely on constant `fread`s which could explain this. Bad job on my side for doing worse than this if that's so.
+
 I'm taking around 50% more time to do it because my library is bad, but again, it's just to give you a rough estimate of how much time it takes on my machine to decode that large file.
 
-> The reader may wonder as I did why the python side spends so much system time compared to mine. As you can see in the C code, I'm mmap-ing the whole JSON file in RAM for simplicity, which also has the benefit of not relying on `fread` constantly. It's possible that the python side does rely on constant `fread`s which could explain this. Bad job on my side for doing worse than this if that's so.
+Well, actually it may not be just because my lib is bad. I checked my build command and here it was : 
+```
+gcc -Ibuild/prc/inc -Ibuild/lib/inc -MMD -O0 -DDEBUG -Wall -Wextra -Wconversion -Wshadow -Wundef -fno-common -Wall -Wno-unused-parameter -Wno-type-limits -g -o build/prc/obj/rdb/rdb.c.o -c prc/rdb.c
+```
+
+{{< alert >}}
+I was building for debug with optimizations disabled ...
+{{< /alert >}}
+
+Fixing the brain and the build mode gives a better result.
+
+```
+ time build/prc/prc
+real    0m0.189s
+user    0m0.174s
+sys     0m0.014s
+```
+
+So I'm running quicker than python but again, both times are in close order of magniture. 
+
 
 Now, let's run the code that I showed you at the end of the previous section, which actually extracts register info and does something with it.
 
@@ -256,9 +279,9 @@ PMUSERENR : 32
 - [2]     : CR : 0x0
 - [3]     : ER : 0x1
 
-real    0m0.247s
-user    0m0.243s
-sys     0m0.003s
+real    0m0.054s
+user    0m0.050s
+sys     0m0.004s
 ```
 
 This duration is statistically relevant (run it multiple times and you'll get a reasonably close time), and reliably reflects the JSON parsing time : just to be sure, I purposefully removed all the data allocation and deallocation, and it was statistically the same : all the execution time is spent in parsing the JSON.
@@ -300,7 +323,7 @@ PMUSERENR_EL0
 Generate a C struct to directly manipulate bitfields in an easy way. Let's see it in action with the ARM CPSR.
 
 ```
-$ time build/prc/prc lyt -n CPSR
+$ build/prc/prc lyt -n CPSR
 typedef union {
         uint32_t bits;
         struct {
@@ -320,10 +343,6 @@ typedef union {
                 uint32_t N : 1;
         };
 } CPSR_t;
-
-real    0m0.243s
-user    0m0.240s
-sys     0m0.003s
 
 ```
 

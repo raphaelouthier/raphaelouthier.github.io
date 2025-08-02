@@ -8,6 +8,7 @@ categories: ["Trading bot"]
 showSummary: true
 date: 2025-06-10
 showTableOfContents : true
+draft: false 
 ---
 
 

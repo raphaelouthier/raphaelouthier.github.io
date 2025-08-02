@@ -6,6 +6,7 @@ categories: ["Operating systems"]
 showSummary: true
 date: 2025-06-16
 showTableOfContents : true
+draft: false 
 ---
 
 ## Context

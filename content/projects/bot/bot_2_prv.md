@@ -8,6 +8,7 @@ categories: ["Trading bot"]
 showSummary: true
 date: 2025-06-19
 showTableOfContents : true
+draft: false 
 ---
 
 This chapter describes the design choices made when implementing the data provision system and justify them by covering in a simplified, but functional way, how disk access, memory translation, kernel buffer management and memory mapping work.
