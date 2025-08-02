@@ -3,7 +3,7 @@ title: "Trading bot : data provider."
 summary: "Explaining the design of the data provider."
 series: ["Trading bot"]
 series_order: 2
-categories: ["Trading bot"]
+categories: ["Trading_bot"]
 #externalUrl: ""
 showSummary: true
 date: 2025-06-19

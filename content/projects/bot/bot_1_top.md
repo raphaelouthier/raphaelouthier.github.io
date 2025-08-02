@@ -3,7 +3,7 @@ title: "Trading core : high level view"
 summary: "A general view of the trading core."
 series: ["Trading bot"]
 series_order: 1
-categories: ["Trading bot"]
+categories: ["Trading_bot"]
 #externalUrl: ""
 showSummary: true
 date: 2025-06-13

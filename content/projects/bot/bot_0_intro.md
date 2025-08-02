@@ -1,7 +1,7 @@
 ---
 title: "Trading bot : introduction"
 summary: "Presentation"
-series: ["Trading bot"]
+series: ["Trading_bot"]
 series_order: 0
 categories: ["Trading bot"]
 #externalUrl: ""

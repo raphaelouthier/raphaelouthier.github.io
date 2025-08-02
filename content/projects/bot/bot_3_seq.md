@@ -3,7 +3,7 @@ title: "Trading bot : trade sequence."
 summary: "How the trading bot trades."
 series: ["Trading bot"]
 series_order: 3
-categories: ["Trading bot"]
+categories: ["Trading_bot"]
 #externalUrl: ""
 showSummary: true
 date: 2025-07-19
