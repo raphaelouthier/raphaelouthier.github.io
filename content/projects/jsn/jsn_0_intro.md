@@ -1,7 +1,7 @@
 --- 
 title: "TurboJSON : JSON basics." 
 summary: "Bases on JSON and how to parse it semi-efficiently."
-series: ["Json optimization"]
+series: ["Json_optimization"]
 series_order: 0
 categories: ["C","ARM64","Optimization"] 
 #externalUrl: "" 

@@ -1,7 +1,7 @@
 --- 
 title: "TurboJSON : High level optimization." 
 summary: "Removing unnecessary processing steps."
-series: ["Json optimization"]
+series: ["Json_optimization"]
 series_order: 1
 categories: ["C","ARM64","Optimization"] 
 #externalUrl: "" 
