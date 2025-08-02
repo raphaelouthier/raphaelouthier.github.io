@@ -262,8 +262,7 @@ user    0m0.174s
 sys     0m0.014s
 ```
 
-So I'm running quicker than python but again, both times are in close order of magniture. 
-
+So I'm running quicker than python but again, both times have close orders of magnitude. 
 
 Now, let's run the code that I showed you at the end of the previous section, which actually extracts register info and does something with it.
 
