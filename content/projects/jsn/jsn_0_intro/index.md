@@ -11,9 +11,6 @@ showTableOfContents : true
 draft: false 
 ---
 
-{{< figure src="images/jsn_0_head.png" >}}
-
-
 ## Context
 
 While working on this project (TODO LINK) involving ARM64 register programming I quickly felt the need to have a small command line tool that would give me some info on a given register, to avoid constantly looking in the ARM64 spec.
