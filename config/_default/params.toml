@@ -12,7 +12,7 @@ autoSwitchAppearance = true
 enableSearch = true
 enableCodeCopy = true
 
-mainSections = ["projects"]
+mainSections = ["prj"]
 # robots = ""
 
 disableImageOptimization = true
@@ -40,7 +40,7 @@ defaultBackgroundImage = "bg_crb.png" # used as default for background images
   showRecent = true
   showRecentItems = 5
   showMoreLink = true
-  showMoreLinkDest = "/projects"
+  showMoreLinkDest = "/prj"
   cardView = false
   cardViewScreenWidth = false
   layoutBackgroundBlur = true # only used when layout equals background
@@ -78,7 +78,7 @@ defaultBackgroundImage = "bg_crb.png" # used as default for background images
   layoutBackgroundBlur = true # only used when heroStyle equals background or thumbAndBackground
   layoutBackgroundHeaderSpace = true # only used when heroStyle equals background
   showBreadcrumbs = false
-  showSummary = false
+  showSummary = true 
   showViews = false
   showLikes = false
   showTableOfContents = false

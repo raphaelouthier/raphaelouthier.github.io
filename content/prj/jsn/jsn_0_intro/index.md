@@ -10,7 +10,6 @@ date: 2025-07-30
 showTableOfContents : true 
 draft: false 
 ---
-
 ## Context
 
 While working on this project (TODO LINK) involving ARM64 register programming I quickly felt the need to have a small command line tool that would give me some info on a given register, to avoid constantly looking in the ARM64 spec.
