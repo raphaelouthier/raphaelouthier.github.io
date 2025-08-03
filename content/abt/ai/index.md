@@ -24,13 +24,13 @@ layoutBackgroundHeaderSpace: false
 
 One must embrace the time they live in and to my displeasure, this decade seems to be focused on AI.
 
-Having listened to all the predictions on AI these last years, my conclusion is that AI has definitely replaced us all developpers six months ago. Weirdly enough, I am still paid a large sum of money to program on a daily basis with a language made in the 90s. I guess someone in HR didn't get the memo from all the tech prophets.
+Having listened to all the predictions on AI these last years, my conclusion is that AI has definitely replaced us all developers six months ago. Weirdly enough, I am still paid a large sum of money to program on a daily basis with a language made in the 90s. I guess someone in HR didn't get the memo from all the tech prophets.
 
 Since we are all more and more incentivised to adhere to the AI frenzy and use AI for programming on a daily basis, I felt that a disclaimer was needed as to what this website contains, what in its content was made by an AI, and what was not.
 
 ## Where AI was not involved
 
-Everything that you can read in this website has been manually written by me.
+Everything that you can read on this website has been manually written by me.
 
 Spell checking is done by google docs.
 
@@ -45,8 +45,8 @@ As stated in my rant, I do not use AI for anything that I see value in.
 There are some domains that I am not interested in `and that I will never be paid for`, and that I do not want to invest time in. For those, I use AI.
 
 So far this has been limited to :
-- articles thumbnails : I have no drawing skills and do not want to invest the time in it.
-- anything web-related : I have no interest in web design and I have developped the web interface for my `toy-trading-bot` using ChatGPT. I would have done the same for this website but ChatGPT is bad with blowfish, + blowfish is easily customizable. so I customized it manually.
+- article thumbnails : I have no drawing skills and do not want to invest the time in it.
+- anything web-related : I have no interest in web design and I have developed the web interface for my `toy-trading-bot` using ChatGPT. I would have done the same for this website but ChatGPT is bad with blowfish, + blowfish is easily customizable. so I customized it manually.
 
 Now that this has been said and that the reader knows that I actually used AI for some things, here is my unfiltered opinion about AI.
 
@@ -54,17 +54,17 @@ Now that this has been said and that the reader knows that I actually used AI fo
 
 Whenever possible, I always try to code things myself, `if I see a value in it`.
 
-At many occasions in the past, I could just have incorporated code from others and have had a more agreable and faster experience. But I did not, because I wanted to really learn how things were made.
+At many occasions in the past, I could just have incorporated code from others and have had a more agreeable and faster experience. But I did not, because I wanted to really learn how things were made.
 
-I believe that there is a strong difference between being given a solution, and coming up to the solution yourself. In the former case you (at most) understand the solution if anything. In the latter case, you understand `THE PROBLEM` which means that you are able to see the tradeoffs of the different possible solutions.
+I believe that there is a strong difference between being given a solution, and coming up with the solution yourself. In the former case you (at most) understand the solution if anything. In the latter case, you understand `THE PROBLEM` which means that you are able to see the tradeoffs of the different possible solutions.
 
 In one case, you just wait for the solution to be made for you.
 
 In the other, you have to modify your own mental model to understand the problem and all its implications. In the process of coming up with a solution, you are actually updating yourself.
 
-Granted, not everything has the same value, and many domains like web development have just become too big, are relativelty fault tolerant, and do not care about performance. In those domains, AI probably has a legitimate place.
+Granted, not everything has the same value, and many domains like web development have just become too big, are relatively fault tolerant, and do not care about performance. In those domains, AI probably has a legitimate place.
 
-But all technical domains are not equal. There is a fundamental difference in technical  between a web developper (<), a low level software engineer (<), and a HW designer. And sadly, the salaries may not always reflect this fact.
+But all technical domains are not equal. There is a fundamental difference in technical skills between a web developer (<), a low level software engineer (<), and a HW designer. And sadly, the salaries may not always reflect this fact.
 
 Many domains like HW design, embedded programming, kernel development, compiler development (and many others) are scoped, critical, fault-intolerant and very performance sensitive. In these domains, people _have_ to know their stuff and imprecision is just not acceptable, nor is delegating brain power to some third party AI.
 

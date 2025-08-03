@@ -19,8 +19,9 @@ In my work, I spend a lot of time looking at ARM64 assembly code without having 
 
 Usually, it is simple to follow the compiler's logic, but in some cases, mostly for performance reasons, the compiler gets very clever and employs super smart tricks that make the original C and the final assembly look completely different.
 
-With time, I have developped a taste for finding and understanding those clever tricks.
+With time, I have grown a taste for finding and understanding those clever tricks.
 
-This section contains short articles describing some of these.
+This section contains short articles compiling the best of these.
 
 They are based on gcc's behavior and on code that I wrote myself.
+
