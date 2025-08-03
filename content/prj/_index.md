@@ -17,5 +17,5 @@ sharingLinks : false
 
 This section contains articles that describe the projects that I work on in my free time. 
 
-The complete code source for those project is not public.
+The complete source code for these projects is not public.
 
