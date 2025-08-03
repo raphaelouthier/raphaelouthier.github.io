@@ -5,3 +5,15 @@
 .max-w-prose {
 	max-width: fit-content;
 }
+
+footer.max-w-prose {
+	max-width:inherit;
+}
+
+img {
+	margin-left: auto;
+	margin-right: auto;
+} 
+figcaption {
+	text-align: center;
+}
