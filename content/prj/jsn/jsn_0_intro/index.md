@@ -17,7 +17,8 @@ While working on this project (TODO LINK) involving ARM64 register programming I
 Luckily for me, ARM folks did a great job (this time) and they nowadays release "machine-readable" descriptors of their ISA, in the form of gigantic JSON files describing among other things every register available.
 
 > A while ago I had to implement an ARM32 emulator for my uKasan, but at that time I only had found the XML human-readable version which was a real pain to parse.
-This JSON spec is MUCH better and I can't thank ARM folks enough for it.
+
+This JSON spec is MUCH better and I can't thank ARM folks enough for it. It can be found alongside all the exploration tools for the AARCH64 ISA [here](https://developer.arm.com/Architectures/A-Profile%20Architecture#Downloads), and the json database can be downloaded at the `Open Source Machine Readable Data` section or using [this link](https://developer.arm.com/-/cdn-downloads/permalink/Exploration-Tools-OS-Machine-Readable-Data/AARCHMRS_BSD/AARCHMRS_OPENSOURCE_A_profile-2025-06.tar.gz) (if still functional).
 
 But simplicity never lasts long : when I can, I prefer re-coding my libraries myself and avoid relying on third party code, as well as programming in C.
 
