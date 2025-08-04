@@ -201,3 +201,40 @@ Dump of assembler code for function ns_js_skp_whs:
 
 And now we see that the null comparison has disappeared.
 
+## LSR weirdness
+
+One could wonder why those two lines are required, as we are later comparing against a bitmask.
+
+```asm
+   0x0000000000435334 <+20>:    cmp     w1, #0x20
+   0x0000000000435338 <+24>:    b.hi    0x435344 <ns_js_skp_whs+36>  // b.pmore
+```
+
+This is due to a weirdness in the behavior of LSR.
+
+Quoting the [aarch64 spec](https://developer.arm.com/documentation/ddi0602/2022-12/Base-Instructions/LSRV--Logical-Shift-Right-Variable-?lang=en) :
+
+```
+LSRV <Xd>, <Xn>, <Xm>
+...
+Xm : Is the 64-bit name of the second general-purpose source register holding a shift amount from 0 to 63 in its bottom 6 bits, encoded in the "Rm" field.
+```
+
+This causes the following shifts behave exactly the same :
+
+```asm
+    # shift by 0
+    mov x1, #0x00
+    # or shift by 64
+    mov x1, #0x40
+    # will produce the original value if used as a shift operand.
+    lsr x0, x0, x1
+```
+
+This essentially means that this LSR trick only works with shifts < 0x40, which mandates a compare + branch to compare. Here the compiler was smart enough to detect the range of our set and just added an upper bound comparison.
+
+{{< alert >}}
+This behavior is different from the behavior of ARMV7's LSR which read the entire byte. For this architecture, the compare + branch would not be needed.
+Always know the version of the architecture that you're writing your assembly for, otherwise you may end up with surprises.
+{{< /alert >}}
+
