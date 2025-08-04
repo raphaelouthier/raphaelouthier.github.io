@@ -10,8 +10,8 @@ title = ""
   dateFormat = "2 January 2006"
   # logo = "img/logo.png"
   # secondaryLogo = "img/secondary-logo.png"
-  # description = "My awesome website"
-  # copyright = "Copy, _right?_ :thinking_face:"
+  description = "Raphael Outhier's blog"
+  copyright = "© _Quote me if you quote me_"
 
 [author]
 name = "Raphael Outhier"

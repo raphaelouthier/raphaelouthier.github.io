@@ -17,3 +17,7 @@ img {
 figcaption {
 	text-align: center;
 }
+
+#hero { 
+	height:0px;
+}
