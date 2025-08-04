@@ -238,3 +238,45 @@ This behavior is different from the behavior of ARMV7's LSR which read the entir
 Always know the version of the architecture that you're writing your assembly for, otherwise you may end up with surprises.
 {{< /alert >}}
 
+## Improving it.
+
+Some improvements can still be made to this function :
+- 1 : it loads the constant with two instructions.
+- 2 : it branches at the start of the function, to skip the initial add. This is dumb as it causes a branch + the extra x0 add will be executed at each iteration.
+- 3 : the main loop has two branches : we first check that the current char is < 0x20, and then we test if it is in the target set.
+
+We can update the code the following way : 
+- we'll hardcode the constant after the code and do a PC-relative load. This may or may not be a good idea as a load may take time, but the PC-local cache line is probably in cache. 
+- we will always add 1 to x0 during the ldrb to make the loop more compact, and we will decrement x0 before `ret`. This is OK since we only return once but may execute the loop multiple times.
+
+The third point will be more interesting to update : 
+- first, let's note that the bitmask trick works for constants up to 63, due to :
+  - the register mask size.
+  - the behavior of LSR in aarch64.
+- thus, we can replace the `is <= 0x20` check by a `is < 0x40` check in the code without any change of behavior.
+- this is equivalent to checking that bits 6 and 7 of our character are 0.
+- so now we can rephrase our check : `test that bits 6 and 7 of the character are 0, and that the bitmask shifted by the character value has bit 0 set.`
+- with a CSEL (conditional select) we can rework our assembly to do the following : 
+  - if bits 6 or 7 of `x1` are set, then store 0 in `x1`. 
+  - otherwise store the shifted mask in `x1`
+  - then, test bit 0 of `x1` and branch back if it is set.
+
+Here is the resulting assembly :
+
+```asm
+(lldb) dis
+prc`ns_js_skp_whs:
+->  0x4294c0 <+0>:  ldr    x2, 0x4294e0 ; <+32>
+    0x4294c4 <+4>:  ldrb   w1, [x0], #0x1
+    0x4294c8 <+8>:  tst    w1, #0xc0
+    0x4294cc <+12>: lsr    x1, x2, x1
+    0x4294d0 <+16>: csel   x1, x1, xzr, eq
+    0x4294d4 <+20>: tbnz   w1, #0x0, 0x4294c4 ; <+4>
+    0x4294d8 <+24>: sub    x0, x0, #0x1
+    0x4294dc <+28>: ret
+    0x4294e0 <+32>: udf    #0x2600
+    0x4294e4 <+36>: udf    #0x1
+```
+
+> I had to switch to LLDB as GDB was choking on my hand-written assembly function : it was hanging at program start.
+
