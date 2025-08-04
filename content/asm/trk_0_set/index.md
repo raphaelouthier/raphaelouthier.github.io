@@ -201,13 +201,3 @@ Dump of assembler code for function ns_js_skp_whs:
 
 And now we see that the null comparison has disappeared.
 
-## Improvements
-
-### Removing an extra compare + branch.
-
-The ARM ARM is unclear about the behavior of LSR when `<shift> >= 64`. If it produces 0, then the two lines that check that the current char is `<= 0x20` can be omitted, which removes a conditional branch for even more perf.
-
-### N at a time.
-
-If the behavior of LSR stated above applies, this is a very good set membership technique as it allows us to low-cost generalize it to a larger read size. We can read 8 or more characters instead of one, perform each shift and OR each result in a new register `x3`. If at the end, `x3` has its bit 0 set, it means that among these 8 characters, at least one was a member of the set.
-
