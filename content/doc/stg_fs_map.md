@@ -17,7 +17,7 @@ Since this explanation ended up taking more lines than what I originally had in 
 
 The original article can be found here :
 
-{{< article link="/projects/bot/bot_2_prv/" >}}
+{{< article link="/prj/bot/bot_2_prv/" >}}
 
 ## Introduction
 

@@ -1,17 +1,16 @@
 --- 
-title: "Assembly trick : set membership test." 
-summary: "if ((a == c0) || (a == c1) || `...` || (a == cn))."
+title: "Assembly trick : char set membership test." 
+summary: "Tesing if a char is in a set of chars as fast as possible."
 categories: ["C","Assembly",] 
 #externalUrl: "" 
 showSummary: true
 date: 2025-08-03 
 showTableOfContents : true
-draft: true 
 ---
 
 ## C level
 
-When working on [this project](), I took a look at how the compiler would digest this code : 
+When working on [this project](/prj/jsn/jsn_0_intro), I took a look at how the compiler would digest this code :
 
 ``` C
 
@@ -29,7 +28,7 @@ const char *ns_js_skp_whs(
     }
     return pos;
 }
-``` 
+```
 
 In this function, we want to skip every character in the set `{' ', '\r', '\n', '\t'}`.
 
@@ -39,9 +38,9 @@ The reader may note that this function could be way shorter. We'll cover this in
 
 ## Assembly level.
 
-Let's see what it looks like in `-o0` : 
+Let's see what it looks like in `-o0` :
 
-``` assembly
+``` asm
 (gdb) disassemble ns_js_skp_whs
 Dump of assembler code for function ns_js_skp_whs:
    0x000000000045056c <+0>:     sub     sp, sp, #0x20
@@ -71,13 +70,13 @@ Dump of assembler code for function ns_js_skp_whs:
    0x00000000004505cc <+96>:    ldr     x0, [sp, #8]
    0x00000000004505d0 <+100>:   add     sp, sp, #0x20
    0x00000000004505d4 <+104>:   ret
-``` 
+```
 
 As you can see, the compiler basically does _each_ check sequentially, which makes sense since we told it to do so via `-o0`.
 
 Now let's witness the magic of `-o3` :
 
-```
+```asm
 (gdb) disassemble ns_js_skp_whs
 Dump of assembler code for function ns_js_skp_whs:
    0x0000000000435320 <+0>:     ldrb    w1, [x0]
@@ -93,7 +92,7 @@ Dump of assembler code for function ns_js_skp_whs:
    0x0000000000435348 <+40>:    ret
 ```
 
-This looks nothing alike the previous version, and if you had given me just this assembly, I'd have hardly guessed that it was doing a set membership test.
+This looks nothing like the previous version, and if you had given me just this assembly, I'd have hardly guessed that it was doing a set membership test.
 
 ## Assembly analysis
 
@@ -101,9 +100,9 @@ Let's see what's happening here :
 
 ### Foreword : ascii translation
 
-Here are the numerical values of the character constants used by the C source file : 
+Here are the numerical values of the character constants used by the C source file :
 - '\0' : 0
-- '\t' : 9 
+- '\t' : 9
 - '\n' : 10
 - '\r' : 13
 - ' '  : 32
@@ -114,24 +113,24 @@ Here are the numerical values of the character constants used by the C source fi
 
 As per the arm64 calling convention, the argument (`pos`) is in `x0`.
 
-The prologue will load the first character into `w1`, and initialize `x2` with a clever constant that we'll elaborate on. 
+The prologue will load the first character into `w1`, and initialize `x2` with a clever constant that we'll elaborate on.
 
-```
+```asm
    0x0000000000435320 <+0>:     ldrb    w1, [x0]
    0x0000000000435324 <+4>:     cbz     w1, 0x435348 <ns_js_skp_whs+40>
    0x0000000000435328 <+8>:     mov     x2, #0x2600                   // #9728
    0x000000000043532c <+12>:    movk    x2, #0x1, lsl #32
 ```
 Notes :
-`w1` will be written again when the next character will be loaded.
-`x2` will always contain `0x100002600`. 
+`w1` will be written again when the next character is loaded.
+`x2` will always contain `0x100002600`.
 
 
 ### Main comparison loop
 
 The next lines contain the core of the comparison trick.
 
-```
+```asm
    0x0000000000435330 <+16>:    cmp     w1, #0x20
    0x0000000000435334 <+20>:    b.hi    0x435348 <ns_js_skp_whs+40>  // b.pmore
    0x0000000000435338 <+24>:    lsr     x1, x2, x1
@@ -140,9 +139,9 @@ The next lines contain the core of the comparison trick.
    0x0000000000435344 <+36>:    cbnz    w1, 0x435330 <ns_js_skp_whs+16>
 ```
 
-The first two lines compares the current character to '0x20' (remember that it is the decimal value for `' '`) and jump to the return section if it is strictly superior to it.
+The first two lines compare the current character to '0x20' (remember that it is the decimal value for `' '`) and jump to the return section if it is strictly superior to it.
 
-The next two line shift our clever constant by the current character's numerical value and jump to the return section if `the resulting value has its first bit set`. We will come back to this in the next section.
+The next two lines shift our clever constant by the current character's numerical value and jump to the return section if `the resulting value has its first bit set`. We will come back to this in the next section.
 
 Then, the last two instructions load the next character, updating `pos` in the process, and :
 - jump back to the start of the comparison loop if the character is non-null.
@@ -151,22 +150,22 @@ Then, the last two instructions load the next character, updating `pos` in the p
 ## What's going on ?
 
 To understand what's going on, let's take a look at those two lines again :
-``` 
+```asm
    0x0000000000435338 <+24>:    lsr     x1, x2, x1
    0x000000000043533c <+28>:    tbz     w1, #0, 0x435348 <ns_js_skp_whs+40>
 ```
 
-So there must be something going on with `x2`. Remember that its value throughout the function is `0x100002600`. 
+So there must be something going on with `x2`. Remember that its value throughout the function is `0x100002600`.
 
 Let's compute the following number :
 
-`(1 << ' ') | (1 << '\r') | (1 << '\n') \ (1 << '\t')` 
+`(1 << ' ') | (1 << '\r') | (1 << '\n') \ (1 << '\t')`
 
-<+12>:    movk    x2, #0x1, lsl #32  
+<+12>:    movk    x2, #0x1, lsl #32
 
-## Improvement
+## Better C generates better assembly.
 
-Now let's simplify our C function.
+Let's simplify our C function.
 
 As the reader might have guessed, we don't really need the null test, since the set membership test does it for us.
 
@@ -185,8 +184,8 @@ const char *ns_js_skp_whs(
 ```
 
 Resulting assembly :
-```
-(gdb) disassemble ns_js_skp_whs                                                     
+```asm
+(gdb) disassemble ns_js_skp_whs
 Dump of assembler code for function ns_js_skp_whs:
    0x0000000000435320 <+0>:     mov     x2, #0x2600                     // #9728
    0x0000000000435324 <+4>:     movk    x2, #0x1, lsl #32
@@ -202,5 +201,40 @@ Dump of assembler code for function ns_js_skp_whs:
 
 And now we see that the null comparison has disappeared.
 
+## LSR weirdness
 
+One could wonder why those two lines are required, as we are later comparing against a bitmask.
+
+```asm
+   0x0000000000435334 <+20>:    cmp     w1, #0x20
+   0x0000000000435338 <+24>:    b.hi    0x435344 <ns_js_skp_whs+36>  // b.pmore
+```
+
+This is due to a weirdness in the behavior of LSR.
+
+Quoting the [aarch64 spec](https://developer.arm.com/documentation/ddi0602/2022-12/Base-Instructions/LSRV--Logical-Shift-Right-Variable-?lang=en) :
+
+```
+LSRV <Xd>, <Xn>, <Xm>
+...
+Xm : Is the 64-bit name of the second general-purpose source register holding a shift amount from 0 to 63 in its bottom 6 bits, encoded in the "Rm" field.
+```
+
+This causes the following shifts behave exactly the same :
+
+```asm
+    # shift by 0
+    mov x1, #0x00
+    # or shift by 64
+    mov x1, #0x40
+    # will produce the original value if used as a shift operand.
+    lsr x0, x0, x1
+```
+
+This essentially means that this LSR trick only works with shifts < 0x40, which mandates a compare + branch to compare. Here the compiler was smart enough to detect the range of our set and just added an upper bound comparison.
+
+{{< alert >}}
+This behavior is different from the behavior of ARMV7's LSR which read the entire byte. For this architecture, the compare + branch would not be needed.
+Always know the version of the architecture that you're writing your assembly for, otherwise you may end up with surprises.
+{{< /alert >}}
 
