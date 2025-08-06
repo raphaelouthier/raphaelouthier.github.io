@@ -9,9 +9,10 @@ showTableOfContents : true
 ---
 
 
-## C level
 
-When working on [this project](/prj/jsn/jsn_0_intro), I took a look at how the compiler would digest this code :
+While I was working on [my json parser project](/prj/jsn/jsn_0_intro) I took a look at how the compiler had digested the following
+whitespace skipping code : 
+
 
 ``` C
 
@@ -34,10 +35,10 @@ const char *ns_js_skp_whs(
 In this function, we want to skip every character in the set `{' ', '\r', '\n', '\t'}`.
 
 {{< alert >}}
-The reader may note that this function could be way shorter. We'll cover this in a moment.
+The diligent reader may note that this function could be much shorter. We'll cover this in a moment.
 {{< /alert >}}
 
-## Assembly level.
+## Assembly level -o0
 
 Let's see what it looks like in `-o0` :
 
@@ -99,18 +100,21 @@ This looks nothing like the previous version, and if you had given me just this 
 
 Let's see what's happening here :
 
-### Foreword : ascii translation
+### ASCII translations
 
 Here are the numerical values of the character constants used by the C source file :
-- '\0' : 0
-- '\t' : 9
-- '\n' : 10
-- '\r' : 13
-- ' '  : 32
+
+| char | ASCII value |
+|-----------|-------------|
+| `\0`      | 0           |
+| `\t`      | 9           |
+| `\n`      | 10          |
+| `\r`      | 13          |
+| `' '`     | 32          |
 
 > Use `man ascii` if you need to know this sort of info.
 
-### Prologue + read.
+### Prologue + read
 
 As per the arm64 calling convention, the argument (`pos`) is in `x0`.
 
@@ -140,7 +144,8 @@ The next lines contain the core of the comparison trick.
    0x0000000000435344 <+36>:    cbnz    w1, 0x435330 <ns_js_skp_whs+16>
 ```
 
-The first two lines compare the current character to '0x20' (remember that it is the decimal value for `' '`) and jump to the return section if it is strictly superior to it.
+The first two lines compare the current character to `0x20` (remember that it is the decimal value for `' '`) 
+and jump to the return section if it is strictly superior to it.
 
 The next two lines shift our clever constant by the current character's numerical value and jump to the return section if `the resulting value has its first bit set`. We will come back to this in the next section.
 
