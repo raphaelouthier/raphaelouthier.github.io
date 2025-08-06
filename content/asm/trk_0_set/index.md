@@ -165,9 +165,27 @@ So there must be something going on with `x2`. Remember that its value throughou
 
 Let's compute the following number :
 
-`(1 << ' ') | (1 << '\r') | (1 << '\n') \ (1 << '\t')`
+`(1 << ' ') | (1 << '\r') | (1 << '\n') | (1 << '\t')`
 
-<+12>:    movk    x2, #0x1, lsl #32
+which translates to :
+
+`(1 << 32) | (1 << 13) | (1 << 10) | (1 << 9)`
+
+which gives :
+
+`0x100000000 | 0x2000 | 0x400 | 0x200`
+
+which gives us back our mysterious `x2` constant :
+
+`0x100002600`.
+
+Now as the reader may realize, shifting this number back by any of `{' ', '\r', '\n', '\t'}` will cause bit 0 to be set.
+
+This is how, with a simple shift and test of bit 0, we can detect that a char is a member of a given set.
+
+The applicability of this trick depends on :
+- the register size. Here, we can only test among a set of constants with values of 63 or less.
+- the behavior or LSR, as the dedicated section will cover.
 
 ## Better C generates better assembly.
 
