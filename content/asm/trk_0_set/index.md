@@ -8,6 +8,7 @@ date: 2025-08-03
 showTableOfContents : true
 ---
 
+
 ## C level
 
 When working on [this project](/prj/jsn/jsn_0_intro), I took a look at how the compiler would digest this code :
@@ -234,30 +235,30 @@ This causes the following shifts behave exactly the same :
 This essentially means that this LSR trick only works with shifts < 0x40, which mandates a compare + branch to compare. Here the compiler was smart enough to detect the range of our set and just added an upper bound comparison.
 
 {{< alert >}}
-This behavior is different from the behavior of ARMV7's LSR which read the entire byte. For this architecture, the compare + branch would not be needed.
+This behavior is different from the behavior of ARMV7's LSR which reads the entire byte. For this architecture, the compare + branch would not be needed.
 Always know the version of the architecture that you're writing your assembly for, otherwise you may end up with surprises.
 {{< /alert >}}
 
-## Improving it.
+## Improvement : simple fixes.
 
 Some improvements can still be made to this function :
 - 1 : it loads the constant with two instructions.
 - 2 : it branches at the start of the function, to skip the initial add. This is dumb as it causes a branch + the extra x0 add will be executed at each iteration.
 - 3 : the main loop has two branches : we first check that the current char is < 0x20, and then we test if it is in the target set.
 
-We can update the code the following way : 
-- we'll hardcode the constant after the code and do a PC-relative load. This may or may not be a good idea as a load may take time, but the PC-local cache line is probably in cache. 
+We can update the code the following way :
+- we'll hardcode the constant after the code and do a PC-relative load. This may or may not be a good idea as a load may take time, but the PC-local cache line is probably in cache.
 - we will always add 1 to x0 during the ldrb to make the loop more compact, and we will decrement x0 before `ret`. This is OK since we only return once but may execute the loop multiple times.
 
-The third point will be more interesting to update : 
+The third point will be more interesting to update :
 - first, let's note that the bitmask trick works for constants up to 63, due to :
   - the register mask size.
   - the behavior of LSR in aarch64.
 - thus, we can replace the `is <= 0x20` check by a `is < 0x40` check in the code without any change of behavior.
 - this is equivalent to checking that bits 6 and 7 of our character are 0.
 - so now we can rephrase our check : `test that bits 6 and 7 of the character are 0, and that the bitmask shifted by the character value has bit 0 set.`
-- with a CSEL (conditional select) we can rework our assembly to do the following : 
-  - if bits 6 or 7 of `x1` are set, then store 0 in `x1`. 
+- with a CSEL (conditional select) we can rework our assembly to do the following :
+  - if bits 6 or 7 of `x1` are set, then store 0 in `x1`.
   - otherwise store the shifted mask in `x1`
   - then, test bit 0 of `x1` and branch back if it is set.
 
@@ -279,4 +280,166 @@ prc`ns_js_skp_whs:
 ```
 
 > I had to switch to LLDB as GDB was choking on my hand-written assembly function : it was hanging at program start.
+
+## Improvement : using smarter instructions.
+
+Let's change the high level algorithm : we'll update the range of supported constants to check to [0, 62] and be sure to have bit 63 set to 0.
+
+We'll then use [this instruction](https://developer.arm.com/documentation/ddi0602/2025-06/Base-Instructions/UMIN--immediate---Unsigned-minimum--immediate--?lang=en) to assign a value to 63 to everything superior to 63, which will effectively exclude all those chars of the match set :
+
+``` asm
+prc`ns_js_skp_whs:
+    0x4294c0 <+0>:  ldr    x2, 0x4294dc ; <+28>
+    0x4294c4 <+4>:  ldrb   w1, [x0], #0x1
+    0x4294c8 <+8>:  umin   w1, w1, #0x63
+    0x4294cc <+12>: lsr    x1, x2, x1
+    0x4294d0 <+16>: tbnz   w1, #0x0, 0x4294c4 ; <+4>
+    0x4294d4 <+20>: sub    x0, x0, #0x1
+    0x4294d8 <+24>: ret
+    0x4294dc <+28>: udf    #0x2600
+    0x4294e0 <+32>: udf    #0x1
+
+```
+
+When compiling, we see a strange compiling error :
+```
+Compiling arm64.S
+arm64.S: Assembler messages:
+arm64.S:15: Error: selected processor does not support `umin w1,w1,0x63'
+make: *** [Makefile:755: build/lib/obj/_tgt_ns/arm64.S.o] Error 1
+```
+
+This is due to the target that I'm compiling my assembly file with :
+```
+   .arch armv8.5-a
+```
+
+As the AARCH64 doc says, this instruction is only available if `FEAT_CSSC` is available in the target architecture, and this feature is optional in ARMV8.5. Adding this feature to the supported assembly fixes the build error.
+
+```
+   .arch armv8.5-a+cssc
+```
+
+Though, we're not at the end of our troubles, as it appears that my computer (Apple M2 with Asahi) doesn't support this instruction :
+
+``` asm
+lldb build/prc/prc
+(lldb) target create "build/prc/prc"
+Current executable set to '/home/bt/bt/work/emb/build/prc/prc' (aarch64).
+(lldb) run
+Process 31568 launched: '/home/bt/bt/work/emb/build/prc/prc' (aarch64)
+Process 31568 stopped
+* thread #1, name = 'prc', stop reason = signal SIGILL: illegal opcode
+    frame #0: 0x00000000004294c8 prc`ns_js_skp_whs + 8
+(lldb) dis
+prc`ns_js_skp_whs:
+    0x4294c0 <+0>:  ldr    x2, 0x4294dc ; <+28>
+    0x4294c4 <+4>:  ldrb   w1, [x0], #0x1
+->  0x4294c8 <+8>:  umin   w1, w1, #0x63
+    0x4294cc <+12>: lsr    x1, x2, x1
+    0x4294d0 <+16>: tbnz   w1, #0x0, 0x4294c4 ; <+4>
+    0x4294d4 <+20>: sub    x0, x0, #0x1
+    0x4294d8 <+24>: ret
+    0x4294dc <+28>: udf    #0x2600
+    0x4294e0 <+32>: udf    #0x1
+```
+
+The instruction is not supported by my CPU hence it generated a sync exception reporting an undefined instruction when encountering it.
+
+This version is thus not-applicable to my CPU but teaches us a great lesson in optimization :
+
+{{< alert >}}
+The architecture that your CPU runs on matters a lot as it affects the set of tricks at your disposal to grind perf.
+{{< /alert >}}
+
+## Doing it in C
+
+OK so now we know this super clever trick used by the compiler.
+We can now just use it in our C code to avoid relying on the compiler's cleverness.
+We just have to carefully compute the masks, which can be easily achieved by two macros and some bitwise trickery :
+
+``` C
+/*
+ * Skip whitespaces.
+*/
+_weak_ const char *ns_js_skp_whs(
+    const char *pos
+)
+{
+
+    /* Produce a bitmask for a char range. stt must be <= end. Undefined behavior otherwise. */
+    #define RANGE(stt, end) ((((u64) 1 << ((end) + 1 - (stt))) - 1) << (stt))
+    #define VALUE(c) RANGE(c, c)
+
+    /* Compute the whitespace mask. */
+    const u64 msk = VALUE(' ') | VALUE('\r') | RANGE('\t', '\n');
+
+    /* Process naively. This line purposefully has a bug which the next section will cover. */                                                          
+    char c;
+    while ((msk >> (c = *pos)) & 0x1) pos++;
+
+    /* Complete. */
+    return pos;
+}
+```
+
+Let's compile it in `-o0` just to prevent the compiler from being clever, and be horrified by the resulting assembly.
+
+``` asm
+(lldb) disassemble  -n ns_js_skp_whs
+prc`ns_js_skp_whs:
+0x4505f0 <+0>:  sub    sp, sp, #0x20
+0x4505f4 <+4>:  str    x0, [sp, #0x8]
+0x4505f8 <+8>:  mov    x0, #0x2600 ; =9728
+0x4505fc <+12>: movk   x0, #0x1, lsl #32
+0x450600 <+16>: str    x0, [sp, #0x18]
+0x450604 <+20>: b      0x450614       ; <+36> at js.c:93:20
+0x450608 <+24>: ldr    x0, [sp, #0x8]
+0x45060c <+28>: add    x0, x0, #0x1
+0x450610 <+32>: str    x0, [sp, #0x8]
+0x450614 <+36>: ldr    x0, [sp, #0x8]
+0x450618 <+40>: ldrb   w0, [x0]
+0x45061c <+44>: strb   w0, [sp, #0x17]
+0x450620 <+48>: ldrb   w0, [sp, #0x17]
+0x450624 <+52>: ldr    x1, [sp, #0x18]
+0x450628 <+56>: lsr    x0, x1, x0
+0x45062c <+60>: and    x0, x0, #0x1
+0x450630 <+64>: cmp    x0, #0x0
+0x450634 <+68>: b.ne   0x450608       ; <+24> at js.c:93:39
+0x450638 <+72>: ldr    x0, [sp, #0x8]
+0x45063c <+76>: add    sp, sp, #0x20
+0x450640 <+80>: ret
+```
+
+> I mean what the hell is that... Why is it even using any stack at all... That's where `-o0` gets you.
+
+But between two retches we can still see that the compiler uses the same mask plus shift than earlier which is exactly what we want.
+
+## C undefined behaviors and why we care
+
+Looking at the assembly in the section above, the attentive reader may ask :
+{{< alert >}}
+We're using `LSR` right ? So how about the comparison with 64 ? Where is the check and jump that was previously used by the compiler itself ?
+{{< /alert >}}
+
+This is a legit question, as in its current state, given what we covered earlier, *this algorithm is not working*.
+
+But confusingly enough, the compiler was actually right in its assembly generation.
+
+To explain why, let's refer to [GNU's C documentation at section 3.8 on bit shifting](https://www.gnu.org/software/gnu-c-manual/gnu-c-manual.html#Bit-Shifting) :
+> For both << and >>, if the second operand is greater than the bit-width of the first operand, or the second operand is negative, the behavior is undefined.
+
+So basically our C program has a bug : it should manually check for the value of the char and only shift if it is less than (<) 64, otherwise, the result of the shift is undefined.
+
+From the compiler's standpoint, words matter : undefined means 'whose behavior is not defined', understand 'whose behavior can legitimately produce any result'. Hence, the compiler does not have to ensure what result the operation has and could theoretically do everything it wants. Here, it simply used the aarch64 `LSR` instruction and stuck to its behavior. But for all intents and purposes, it could very well have generated an assembly sequence that :
+- checks the char range and aborts if >= 64. or
+- checks the char range and moves 0xdeadbeef in x0 instead of the shift result. or
+- blows up your machine.
+
+All those scenarios would all have been perfectly acceptable behaviors as per the C standard.
+
+This teaches us one other optimization lesson :
+{{< alert >}}
+Beware of undefined behaviors. They may cause your optimization to work on a given platform/compiler, and not on others.
+{{< /alert >}}
 
