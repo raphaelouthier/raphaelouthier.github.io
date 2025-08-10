@@ -1,4 +1,16 @@
-TODO trade sequences article.
+
+TODO switch case optimization key transformation based on bit shift + and with set mask + count set bits 
+
+static patch
+TODO implement static patching
+TODO see how we can static patch functions depending on the architecture.
+
+todo js speed algo.
+TODO finish the js speed article.
+
+todo js char processing algo
+TODO write the js speed algo.
+
 
 /*********************
  * Kasan constraints *
