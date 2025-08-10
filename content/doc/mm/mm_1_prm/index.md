@@ -30,11 +30,6 @@ Then, we will present the base algorithm for managing the primary memory for a s
 
 Finally, we will conclude by a detailed diagram summarising the memory manager’s architecture.
 
-{{< figure
-src="images/memory_management/ram.webp"
-caption="Credits : Photo by Hanisch from FreeImages"
->}}
-
 ## DMA and the need for memory zones
 
 In the first chapter we described physical memory as an uniform resource with no other differentiating characteristics apart from it the NUMA node dimension. This was an oversimplification, and in order to better explain how things really work we need to introduce the concept of Direct Memory Access.

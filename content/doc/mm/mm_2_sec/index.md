@@ -29,11 +29,6 @@ The secondary memory management can be defined as:
 These techniques are numerous, and this article does not intend to be exhaustive. \
 Rather, I wish to share the ones I found to be the most useful in my different implementations, and provide, for each of them, an overview of their different objectives, trade-offs, and working principles.
 
-{{< figure
-src="images/memory_management/diskette.webp"
-caption="Photo credit : Photo by pipp from FreeImages"
->}}
-
 ### Allocation types, the detailed version
 
 The secondary allocator is the allocator the end-user accesses to obtain and recycle its memory.

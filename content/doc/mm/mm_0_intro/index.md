@@ -37,11 +37,6 @@ In this, we will cover the basics needed to properly understand memory managers,
 
 The theory and designs that I will introduce in this article are based on my study of different kernels (linux being on the list), and on my own implementations and trials.
 
-{{< figure
-src="images/memory_management/floppy.webp"
-caption="Image credits : Photo by pipp from FreeImages"
->}}
-
 ### The memory bottleneck
 
 As software developers we tend to view memory as an uniform resource, with a constant and negligible access time.

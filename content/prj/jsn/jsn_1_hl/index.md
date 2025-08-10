@@ -145,9 +145,67 @@ In a production environment, it may or may not be safe to assume the correctness
 
 ## Skipping arrays and objects the smart way : bracket counting.
 
-As a matter of fact, 
+TODO SKIP algorithm.
+
+## Hangover : almighty GCC.
 
 
+## Detour : a lower boundary for our execution time.
+
+So I must be honest, I wasn't expecting GCC to :
+- be that good at optimizing what I considered poor code, and
+- give me the middle finger on what I considered a more optimized version.  
+
+But metrics don't lie so I'll have to find better tricks.
+
+But first, since shrinking this execution time does not sound like an easy task, let's try to reason about the actual target. 
+
+TODO : MAP_POPULATE
+TODO : TELL THAT MAPPINGS ARE PRIVATE
+TODO : TELL ABOUT THROTTLING
+
+### Profiling methodology.
+
+The first thing we do is to map our big JSon file. We hence need to estimate the minimal time it takes.
+
+Then, accross all our parsing, we are effectively reading the file entirely. This also will need to be accounted for since we cannot avoid it.
+
+The following graphs were generated in one single profiling session where
+
+To get execution time estimations for these operations, I ran 500 times the following scenario :
+- Read-only map.
+- Read-write map.
+- Read-only map with populate.
+- Read-write map populate.
+- Read-only map and full read.
+- Read-write map and full read.
+- Read-only map with populate and full read.
+- Read-write map populate and full read.
+
+And then generated the grapgs presented in the next two sections.
+
+It is possible that those steps interact with each other, which could explain some perf subtleties that we will cover.
+
+### Profiling mmap.
+
+The first thing our program does is to map our json file in memory.
+
+Let's use the same method used in chapter 1 to determine how long just mapping the whole file with different attributes takes.
+
+We'll do 500 iterations 
+
+<iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTz3oNv5A1TIxLR1au_-eqklkcNY5_M9mkacmsvPtAAmdNPfYzijByJhu_jwjZuvb4Lbm4Mu5ig6TAe/pubchart?oid=1803207841&amp;format=interactive"></iframe>
+
+
+<iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTz3oNv5A1TIxLR1au_-eqklkcNY5_M9mkacmsvPtAAmdNPfYzijByJhu_jwjZuvb4Lbm4Mu5ig6TAe/pubchart?oid=711579004&amp;format=interactive"></iframe>
+
+
+<iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTz3oNv5A1TIxLR1au_-eqklkcNY5_M9mkacmsvPtAAmdNPfYzijByJhu_jwjZuvb4Lbm4Mu5ig6TAe/pubchart?oid=2009877744&amp;format=interactive"></iframe>
+
+
+<iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTz3oNv5A1TIxLR1au_-eqklkcNY5_M9mkacmsvPtAAmdNPfYzijByJhu_jwjZuvb4Lbm4Mu5ig6TAe/pubchart?oid=1064451209&amp;format=interactive"></iframe>
+
+## Detour 1 : profiling mmap + complete read.
 
 
 

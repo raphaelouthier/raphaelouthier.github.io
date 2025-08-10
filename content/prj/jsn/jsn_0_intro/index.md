@@ -171,7 +171,7 @@ Notes :
 - allocation is performed using `ns_alloc__` which performs variable def, allocation and size computation at once for less C code.
 - the code uses some functions of my own (non-)standard library, namely, my linked list lib (`ns_dls`) and my map (`ns_map`) lib, so as their dedicated iterators.
 
-## Base performance metrics
+## Complete json parsing time.
 
 First, to have a vague idea of what is considered an acceptable decoding time, let's have the ARM64 register file decoded by another library.
 
@@ -179,7 +179,7 @@ Here I chose python for simplicity.
 
 ``` python
 import json
-json.load(open('/home/bt/Downloads/armdb/Registers.json'))
+json.load(open('/tmp/Registers.json'))
 ```
 
 Let's run it and check how much time it takes.
@@ -212,7 +212,7 @@ u32 prc_rdb_main(
 
         /* Open and map the reg db. */
         ns_res stg_res;
-        ns_stg *stg = nsk_stg_opn(&stg_res, "/home/bt/Downloads/armdb/Registers.json");
+        ns_stg *stg = nsk_stg_opn(&stg_res, "/tmp/Registers.json");
         assert(stg);
         char *jsn = ns_stg_map(stg, 0, 0, ns_stg_siz(stg), NS_STG_ATT_RED | NS_STG_ATT_WRT);
         assert(jsn);
@@ -261,31 +261,21 @@ sys     0m0.014s
 
 So I'm running quicker than python but again, both times have close orders of magnitude. 
 
+## Targetted json parsing time. 
+
 Now, let's run the code that I showed you at the end of the previous section, which actually extracts register info and does something with it.
 
 This JSON decoder is _relatively_ performant, in the sense that it does not do anything stupid like parse the same content multiple times (which my previous example certainly did). It also does not create a full in-memory representation of all the data in the JSON file.
 
-Here I'm having it decode the values of a register's bitfield given the register name and a value for it.
+I also placed the register file in /tmp/ which is ram-backed to avoid any form of storage access.
 
-```
-$ time build/prc/prc dec -n PMUSERENR -v 10
-PMUSERENR : 32
-- [0]     : EN : 0x0
-- [1]     : SW : 0x1
-- [2]     : CR : 0x0
-- [3]     : ER : 0x1
-
-real    0m0.054s
-user    0m0.050s
-sys     0m0.004s
-```
+TODO
 
 This duration is statistically relevant (run it multiple times and you'll get a reasonably close time), and reliably reflects the JSON parsing time : just to be sure, I purposefully removed all the data allocation and deallocation, and it was statistically the same : all the execution time is spent in parsing the JSON.
 
 Hence, this time will be our base performance metric for the next chapters.
 
 Let's see how much we can shrink it !
-
 
 ## Conclusion
 
@@ -316,6 +306,17 @@ PMUSERENR
 PMUSERENR_EL0
 ```
 
+Decode the values of a register's bitfield given the register name and a value for it.
+
+```
+$ build/prc/prc dec -n PMUSERENR -v 10
+PMUSERENR : 32
+- [0]     : EN : 0x0
+- [1]     : SW : 0x1
+- [2]     : CR : 0x0
+- [3]     : ER : 0x1
+```
+
 Generate a C struct to directly manipulate bitfields in an easy way. Let's see it in action with the ARM CPSR.
 
 ```
@@ -341,6 +342,3 @@ typedef union {
 } CPSR_t;
 
 ```
-
-(`dec` just does what `reg` does with the added decoding and I already covered `dec` in the previous section.)
-
