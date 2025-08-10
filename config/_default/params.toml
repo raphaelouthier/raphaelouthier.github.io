@@ -40,8 +40,8 @@ defaultBackgroundImage = "bg_crb.png" # used as default for background images
   showRecent = true
   showRecentItems = 20
   showMoreLink = true
-  showMoreLinkDest = [ "/prj", "/asm", "/doc" ]
-  cardView = false
+  showMoreLinkDest = "/prj"
+  cardView = true
   cardViewScreenWidth = false
   layoutBackgroundBlur = true # only used when layout equals background
 
