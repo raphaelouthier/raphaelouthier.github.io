@@ -269,11 +269,26 @@ This JSON decoder is _relatively_ performant, in the sense that it does not do a
 
 I also placed the register file in /tmp/ which is ram-backed to avoid any form of storage access.
 
-TODO
+```
+$ build/prc/prc -rdb /tmp/regs.json -c 10
+stp 0 : 72.442.
+stp 1 : 49.858.
+stp 2 : 49.996.
+stp 3 : 48.785.
+stp 4 : 48.795.
+stp 5 : 49.943.
+stp 6 : 48.750.
+stp 7 : 50.366.
+stp 8 : 50.716.
+stp 9 : 51.777.
+Average : 52.142.
+```
 
-This duration is statistically relevant (run it multiple times and you'll get a reasonably close time), and reliably reflects the JSON parsing time : just to be sure, I purposefully removed all the data allocation and deallocation, and it was statistically the same : all the execution time is spent in parsing the JSON.
+The first iteration is slower. This can be due to many things, here are the two that come to my mind : 
+- CPU power transition : before I ran the code on my system, it is mostly idle. A first run will cause the CPU to burn power which will make it transition to a higer perf state, and potentially cause linux to move our process to a performant core.  
+- branch predictor training : this first iteration will be exactly the same as the other, and it will give the CPU an exact statistical representation of how branches are taken. Training the branch prediction based on this will effectively cause a better prediction on every next run.
 
-Hence, this time will be our base performance metric for the next chapters.
+The next iterations are statistically closer and this `50ms` execution time will be our base performance metric for the next chapters.
 
 Let's see how much we can shrink it !
 
