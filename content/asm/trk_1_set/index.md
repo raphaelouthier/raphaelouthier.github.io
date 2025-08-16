@@ -9,7 +9,7 @@ showTableOfContents : true
 ---
 
 
-## Introduction.
+## Introduction
 
 While I was working on [the third part of my json parsing optimization project](/prj/jsn/jsn_2_asm) involving ARM SIMD operations, I reached the limits of what the [trick that I mentioned in my previous post](/asm/trk_0_set) allows.
 
@@ -119,7 +119,7 @@ The inverse of this function will hence be a bijective function that projects ou
 
 So watch for those diagrams !
 
-## Operation 0 : ADD.
+## Operation 0 : ADD
 
 An operation that is certainly supported in SIMD is the addition / subtraction.
 
@@ -175,7 +175,7 @@ F | 0 @ P ` p                       |
 
 That made `!` move to the position 0 of our target range. Useful ! Now we just have to find a function that puts our three characters in any range of width 8 (any `[N, N + 7]` range, N being constant), and we'll be able to translate this range in [0, 7].
 
-## Operation 1 : XOR.
+## Operation 1 : XOR
 
 Another operation that is surely supported in SIMD (since it behaves exactly the same as the non-SIMD one...) is the bitwise XOR.
 
@@ -531,7 +531,7 @@ Let's inverse it to get the transformation that puts our target charset in [0, 7
 
 Which is again just 3 SIMD instructions.
 
-## A harder case : detecting '"{^'.
+## A harder case : detecting '"{^'
 
 Our previous solutions worked nicely because both `[]` and `{}` couples are on the same columns.
 
@@ -565,7 +565,7 @@ They are all on different rows and columns, so we'll have to be a bit inventive 
 
 Let's throw a couple of dies and rely on randomness for once.
 
-## Operation 2 : MUL.
+## Operation 2 : MUL
 
 The multiplication operation is most likely supported by any SIMD engine, so we may as well try to do something with it.
 
@@ -587,7 +587,7 @@ Now that this is addressed, the reason why the MUL operation is interesting is t
 
 Now apart from the relative pleasure one can find by scrolling down and seeing the wave-like patterns move, there is a purpose in showing you this.
 
-## Solving our problem.
+## Solving our problem
 
 Among all those variations, there are some that have two of our target characters on the same column, and that makes them potential candidates for our XOR method.
 

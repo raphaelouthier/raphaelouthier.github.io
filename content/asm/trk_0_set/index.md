@@ -187,7 +187,7 @@ The applicability of this trick depends on :
 - the register size. Here, we can only test among a set of constants with values of 63 or less.
 - the behavior or LSR, as the dedicated section will cover.
 
-## Better C generates better assembly.
+## Better C generates better assembly
 
 Let's simplify our C function.
 
@@ -262,7 +262,7 @@ This behavior is different from the behavior of ARMV7's LSR which reads the enti
 Always know the version of the architecture that you're writing your assembly for, otherwise you may end up with surprises.
 {{< /alert >}}
 
-## Improvement : simple fixes.
+## Improvement : simple fixes
 
 Some improvements can still be made to this function :
 - 1 : it loads the constant with two instructions.
@@ -304,7 +304,7 @@ prc`ns_js_skp_whs:
 
 > I had to switch to LLDB as GDB was choking on my hand-written assembly function : it was hanging at program start.
 
-## Improvement : using smarter instructions.
+## Improvement : using smarter instructions
 
 Let's change the high level algorithm : we'll update the range of supported constants to check to [0, 62] and be sure to have bit 63 set to 0.
 

@@ -243,7 +243,7 @@ This time we see something totally different : AAPL did not steadily gain in pri
 
 All trade sequences except a couple of lucky one were unsuccessfull, and We even ended up loosing some money.
 
-## Conclusion.
+## Conclusion
 
 This article finishes my series on the trading bot.
 
@@ -488,7 +488,7 @@ This time we see something totally different : AAPL did not steadily gain in pri
 
 All trade sequences except a couple of lucky ones were unsuccessful, and we even ended up losing money.
 
-## Conclusion.
+## Conclusion
 
 This article finishes my series on the trading bot.
 

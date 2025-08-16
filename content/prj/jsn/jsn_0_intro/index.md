@@ -171,7 +171,7 @@ Notes :
 - allocation is performed using `ns_alloc__` which performs variable def, allocation and size computation at once for less C code.
 - the code uses some functions of my own (non-)standard library, namely, my linked list lib (`ns_dls`) and my map (`ns_map`) lib, so as their dedicated iterators.
 
-## Complete JSON parsing time.
+## Complete JSON parsing time
 
 First, to have a vague idea of what is considered an acceptable decoding time, let's have the ARM64 register file decoded by another library.
 

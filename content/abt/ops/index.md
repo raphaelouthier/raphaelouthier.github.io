@@ -28,7 +28,7 @@ This article is here to answer a question that has probably come to your mind if
 Why isn't this guy just publishing the source code ? That would be so much easier.
 {{< /alert >}}
 
-## My job.
+## My job
 
 During the day, I work as a platform kernel engineer at Apple.
 

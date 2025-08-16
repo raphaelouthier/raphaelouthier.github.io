@@ -142,7 +142,7 @@ In our case, we always parse the same JSON file, so we can just check its correc
 
 In a production environment, it may or may not be safe to assume the correctness of real-time data. It will depend.
 
-## 20% gain by skipping the right way.
+## 20% gain by skipping the right way
 
 Our container skippers are pretty complex for what they intend to do : they are calling sub-skippers for every entity that containers are composed of. By doing so, they strictly respect the JSON format. But who actually cares, since they discard the result.
 
@@ -178,7 +178,7 @@ Average : 43.351.
 
 This trick just gave us a 20% perf gain.
 
-## 25% gain by gathering memory reads.
+## 25% gain by gathering memory reads
 
 One of the bottlenecks of modern systems is memory access.
 
