@@ -57,7 +57,7 @@ Throughout this article I'll heavily rely on reversible operations that affect a
 
 To visualize the ascii charset in a variety of ways, `man ascii` is your best friend.
 
-I'll show the effects of some functions on the ascii character set with the following kind of diagram. For every cell in the array indexed by `(x, y)`, it shows the ascii value of `(x << 4) & y` transformed by some given operation.
+I'll show the effects of some functions on the ascii character set with the following kind of diagram. For every cell in the array indexed by `(x, y)`, it shows the ascii value of `(x << 4) | y` transformed by some given operation.
 
 ```
     0 1 2 3 4 5 6 7 8 9 A B C D E F
