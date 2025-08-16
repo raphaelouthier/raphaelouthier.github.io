@@ -1,5 +1,5 @@
 --- 
-title: "TurboJSON : High level optimization." 
+title: "TurboJSON : C-level optimization." 
 summary: "Removing unnecessary processing steps."
 series: ["Json_optimization"]
 series_order: 1
@@ -15,11 +15,11 @@ draft: true
 
 ## Introduction
 
-This chapter will cover the modifications of the structure processing algorithm that increase the json parsing performance.  
+This chapter will cover the modifications of the structure processing algorithm that decrease the json parsing time of around 40%.
 
-It will not cover tricks to optimize _existing_ _steps_ (like using an assembly trick to do the same thing but faster). For this kind of details, please refer to the next chapter.
+It will cover all optimizations that can be implemented at the C level, while the next chapter will focus on how we can improve it even more by using tricks reserved for the assembly world. 
 
-Let's first remind two facts.
+Let's start by remembering a few facts.
 
 First, the json format is not structured in memory (you can't just skip to the next entity by applying a (compile-time or runtime) constant byte offset : you must process the entire file char by char.
 
@@ -143,112 +143,24 @@ In our case, we always parse the same json file, so we can just check its correc
 
 In a production environment, it may or may not be safe to assume the correctness of real-time data. It will depend. 
 
-## Skipping arrays and objects the smart way : bracket counting.
+## 20% gain by skipping the right way.
 
-TODO Convert notes to actual readable article material.
+Our container skippers so far are pretty complex for what they intend to do : they are calling sub-skippers for every entity that containers are composed of. By doing so, they strictly respect the json format. But who actually cares, since they discard the result.
 
+Knowing that fact, we can do better. Instead of diligently parsing the entire structure, we just iterate over all characters and count brackets.
 
-``` C
-/*****************
- * Fast skip API *
- *****************/
+We start at the character the first (opening) bracket of the container, and iterate over all characters while maintaining a bracket counter :
+- if we detect an opening bracket (either `[` or `{` depending on the container type) we increment the bracket counter.
+- if we detect a closing bracket, we decrement the bracket counter, and stop if it reaches 0.
+- if we detect a string, we'll skip the string. This is required to avoid counting brackets inside strings.
 
-/*
- * Skip a string.
- */
-const char *ns_js_fsk_str(
-        const char *pos
-)
-{
-        char c = *(pos++);
-        check(c == '"');
-        char p = c;
-        while (1) {
-                c = *(pos++);
-                if ((c == '"') && (p != '\\'))
-                        return pos;
-                p = c;
-        }
-}
+In the meantime, we can also simplify our string parsing algorithm by stopping at the first quote which is not preceded by a backslash. 
 
-/*
- * Skip a number.
- */
-const char *ns_js_fsk_nb(
-        const char *pos
-)
-{
-        return NS_STR_SKP64(pos, '+', (RNG, '0', '9'), (VAL, 'e'), (VAL, 'E'), (VAL, '.'), (VAL, '+'), (VAL, '-'));
-}
+We can also improve our number skipper. A quick look at the ascii table will show that all characters that a number can be composed of (`[0-9eE.+-]`) are in the character decimal interval `['+', '+' + 64]` which allows us to apply the fast set membership test trick that I covered [in this article](/asm/trk_0_set).
 
-/*
- * Skip an array.
- */
-const char *ns_js_fsk_arr(
-        const char *pos
-)
-{
-        char c = *(pos++);
-        check(c == '[');
-        u32 cnt = 1;
-        while (1) {
-                while (((c = *(pos++)) != '[') && (c != ']') && (c != '"'));
-                if (c == '"') {
-                        pos = ns_js_fsk_str(pos - 1);
-                } else if (c == '[') {
-                        cnt += 1;
-                } else {
-                        if (!(cnt -= 1)) {
-                                return pos;
-                        }
-                }
-        }
-}
+{{< collapsible-code path="content/prj/jsn/jsn_1_hl/fst_skp.h" lang="c" title="Faster json entity skippers." >}}
 
-/*
- * Skip an object.
- */
-const char *ns_js_fsk_obj(
-        const char *pos
-)
-{
-        char c = *(pos++);
-        check(c == '{');
-        u32 cnt = 1;
-        while (1) {
-                while (((c = *(pos++)) != '{') && (c != '}') && (c != '"'));
-                if (c == '"') {
-                        pos = ns_js_skp_str(pos - 1);
-                } else if (c == '{') {
-                        cnt += 1;
-                } else if (c == '}') {
-                        if (!(cnt -= 1)) {
-                                return pos;
-                        }
-                }
-        }
-}
-
-/*
- * Skip a value.
- */
-const char *ns_js_fsk_val(
-        const char *pos
-)
-{
-        const char c = *pos;
-        if (c == '{') return ns_js_fsk_obj(pos);
-        else if (c == '[') return ns_js_fsk_arr(pos);
-        else if (c == '"') return ns_js_fsk_str(pos);
-        else if (c == 't') return ns_js_fsk_true(pos);
-        else if (c == 'f') return ns_js_fsk_false(pos);
-        else if (c == 'n') return ns_js_fsk_null(pos);
-        else return ns_js_fsk_nb(pos);
-}
-```
-
-
-TODO SKIP algorithm.
+Let's check how much perf we gained :
 
 ```
 $ nkb && build/prc/prc -rdb /tmp/regs.json -c 10
@@ -267,79 +179,28 @@ Average : 43.351.
 
 This trick just gave us a 20% perf gain.
 
-## Trick 2 : Larger read width.
+## 25% gain by gathering memory reads.
 
-```C
+One of the bottlenecks of modern systems is memory access.
 
-/*
- * Skip an array.
- */
-const char *ns_js_fsk_arr(
-        const char *pos
-)
-{
-        char c = *(pos++);
-        check(c == '[');
-        u32 cnt = 1;
-        while (1) {
-                stt:;
-                uint64_t v = *(uint64_t *) pos;
-                uint64_t v1 = *(uint64_t *) (pos + 8);
-                for (u8 i = 0; i < 2; i++) {
-                        for (u8 i = 0; i < 8; pos++, i++, v >>= 8) {
-                                c = (uint8_t) v;
-                                if ((c != '[') && (c != ']') && (c != '"')) continue;
-                                if (c == '"') {
-                                        pos = ns_js_fsk_str(pos);
-                                        goto stt;
-                                } else if (c == '[') {
-                                        cnt += 1;
-                                } else if (c == ']') {
-                                        if (!(cnt -= 1)) {
-                                                return pos + 1;
-                                        }
-                                }
-                        }
-                        v = v1;
-                }
-        }
-}
+Here we are doing something stupid, which is to read character by character.
 
-/*
- * Skip an object.
- */
-const char *ns_js_fsk_obj(
-        const char *pos
-)
-{
-        char c = *(pos++);
-        check(c == '{');
-        u32 cnt = 1;
-        while (1) {
-                stt:;
-                uint64_t v = *(uint64_t *) pos;
-                uint64_t v1 = *(uint64_t *) (pos + 8);
-                for (u8 i = 0; i < 2; i++) {
-                        for (u8 i = 0; i < 8; pos++, i++, v >>= 8) {
-                                c = (uint8_t) v;
-                                if ((c != '{') && (c != '}') && (c != '"')) continue;
-                                if (c == '"') {
-                                        pos = ns_js_fsk_str(pos);
-                                        goto stt;
-                                } else if (c == '{') {
-                                        cnt += 1;
-                                } else if (c == '}') {
-                                        if (!(cnt -= 1)) {
-                                                return pos + 1;
-                                        }
-                                }
-                        }
-                        v = v1;
-                }
-        }
-}
-```
+This will effectively translate into single char requests from our CPU to its memory system. This can be improved with a bit of trickery.
 
+Instead of reading character by character, we will read `uint64_t by uint64_t` and process each of the 8 read bytes one after the other.
+
+The best performance result that I had so far was by doing two consecutive `uint64_t` reads and processing each of the resulting 16 bytes one after the other.
+
+{{< collapsible-code path="content/prj/jsn/jsn_1_hl/u64_mem.h" lang="c" title="Reading 16 characters at a time." >}}
+
+{{< alert >}}
+The attentive reader will note that this code intrinsicly generates unaligned accesses.
+Unaligned accesses make the CPU designers' life hard.
+Unaligned accesses are bad. Don't do unaligned accesses.
+Unless they give you a 25% perf increase.
+{{< /alert >}}
+
+Let's see how much we gained.
 
 ```
 $ nkb && build/prc/prc -rdb /tmp/regs.json -c 10
@@ -356,72 +217,12 @@ stp 9 : 30.250.
 Average : 33.856.
 ```
 
-Here's another 10ms gain, 25% better than trick 1, 40% better than the original recursive version, among which 20pp are due to this added trick.
+That's another 10ms gain, 25% better than trick 1, 40% better than the original recursive version, among which 20pp are due to this added trick.
 
+## Conclusion
 
-## Detour : a lower boundary for our execution time.
+With those improvement we almost divided our execution time by 2.
 
-So I must be honest, I wasn't expecting GCC to :
-- be that good at optimizing what I considered poor code, and
-- give me the middle finger on what I considered a more optimized version.  
-
-But metrics don't lie so I'll have to find better tricks.
-
-But first, since shrinking this execution time does not sound like an easy task, let's try to reason about the actual target. 
-
-TODO : MAP_POPULATE
-TODO : TELL THAT MAPPINGS ARE PRIVATE
-TODO : TELL ABOUT THROTTLING
-
-### Profiling methodology.
-
-The first thing we do is to map our big JSon file. We hence need to estimate the minimal time it takes.
-
-Then, accross all our parsing, we are effectively reading the file entirely. This also will need to be accounted for since we cannot avoid it.
-
-The following graphs were generated in one single profiling session where
-
-To get execution time estimations for these operations, I ran 500 times the following scenario :
-- Read-only map.
-- Read-write map.
-- Read-only map with populate.
-- Read-write map populate.
-- Read-only map and full read.
-- Read-write map and full read.
-- Read-only map with populate and full read.
-- Read-write map populate and full read.
-
-And then generated the grapgs presented in the next two sections.
-
-It is possible that those steps interact with each other, which could explain some perf subtleties that we will cover.
-
-### Profiling mmap.
-
-The first thing our program does is to map our json file in memory.
-
-Let's use the same method used in chapter 1 to determine how long just mapping the whole file with different attributes takes.
-
-We'll do 500 iterations 
-
-<iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTz3oNv5A1TIxLR1au_-eqklkcNY5_M9mkacmsvPtAAmdNPfYzijByJhu_jwjZuvb4Lbm4Mu5ig6TAe/pubchart?oid=1803207841&amp;format=interactive"></iframe>
-
-
-<iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTz3oNv5A1TIxLR1au_-eqklkcNY5_M9mkacmsvPtAAmdNPfYzijByJhu_jwjZuvb4Lbm4Mu5ig6TAe/pubchart?oid=711579004&amp;format=interactive"></iframe>
-
-
-<iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTz3oNv5A1TIxLR1au_-eqklkcNY5_M9mkacmsvPtAAmdNPfYzijByJhu_jwjZuvb4Lbm4Mu5ig6TAe/pubchart?oid=2009877744&amp;format=interactive"></iframe>
-
-
-<iframe width="600" height="371" seamless frameborder="0" scrolling="no" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTz3oNv5A1TIxLR1au_-eqklkcNY5_M9mkacmsvPtAAmdNPfYzijByJhu_jwjZuvb4Lbm4Mu5ig6TAe/pubchart?oid=1064451209&amp;format=interactive"></iframe>
-
-## Detour 1 : profiling mmap + complete read.
-
-
-
-
-
-
-
-
+As the next chapter will show, we can shrink it even more but to do this, we need to move to the assembly level, to apply tricks that the compiler is too clumsy to handle correctly.
 
 

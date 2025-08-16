@@ -139,7 +139,7 @@ Our previously established golden rule will have a consequence on the second fea
 
 Here are the declarations of both the low level and high level parts of the parser :
 
-{{< collapsible-code path="content/projects/jsn/prs_api.h" lang="c" title="Spec of the JSON parser." >}}
+{{< collapsible-code path="content/prj/jsn/jsn_0_intro/prs_api.h" lang="c" title="Spec of the JSON parser." >}}
 
 A few notes :
 - the `Skip API` section defines the low level part of the parser. As we covered previously, it is mostly composed of functions that receive a pointer to the start of a particular entity, and that return the location of the next character after this entity.
@@ -153,7 +153,7 @@ A few notes :
 
 Now let's take a look at the code to extract (and simply print) the data that we need from the register spec.
 
-{{< collapsible-code path="content/projects/jsn/reg_xtr_m0.c" lang="c" title="ARM64 register spec extraction code using the JSON parser." >}}
+{{< collapsible-code path="content/prj/jsn/jsn_0_intro/reg_xtr_m0.c" lang="c" title="ARM64 register spec extraction code using the JSON parser." >}}
 
 A few notes :
 - this relies heavily on my own standard library (all the ns_ prefixed stuff). In particular :
@@ -164,7 +164,7 @@ Actually, let's do it.
 
 Here is the code that parses the arm register db and that stores it in a tree-like data structure.
 
-{{< collapsible-code path="content/projects/jsn/reg_xtr_m1.c" lang="c" title="ARM64 register spec extraction code using the JSON parser." >}}
+{{< collapsible-code path="content/prj/jsn/jsn_0_intro/reg_xtr_m1.c" lang="c" title="ARM64 register spec extraction code using the JSON parser." >}}
 
 Notes :
 - while writing this code I renamed a few things, so the reader will notice changes in the parser names. No functional change is implemented.
