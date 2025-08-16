@@ -54,7 +54,7 @@ Long story very short, the JSON file defines the basic value structure which can
 
 Note that the beauty of the JSON is that the array and object structures contain values and hence make this format recursive. That will matter when we'll discuss parsing.
 
-The json spec essentially defines the low level features of our parser. It will need to recognize every entity supported by the spec and parse it correctly.
+The JSON spec essentially defines the low level features of our parser. It will need to recognize every entity supported by the spec and parse it correctly.
 
 ## Skipping, and why it matters
 
@@ -70,9 +70,9 @@ Let's see this with an example.
 > In all this section, we will ignore whitespaces to keep the explanation simple.
 
 Let's suppose that our parser is at the start of an object, and that it wants to extract some information contained in this object.
-The parser needs to skip the object start. The json format defines '{' as a single-character array start, so the parser can simply move to the next character.
-The parser is now at a string start. As per the json format, the current char should be '"'. After checking this fact, the parser can move to the next character.
-The parser is now in a string body. The json format defines that the string will end with a '"' not preceded by a '/'. It can move to the next character until it detects it. If the string should be stored somewhere, it can copy it directly.
+The parser needs to skip the object start. The JSON format defines '{' as a single-character array start, so the parser can simply move to the next character.
+The parser is now at a string start. As per the JSON format, the current char should be '"'. After checking this fact, the parser can move to the next character.
+The parser is now in a string body. The JSON format defines that the string will end with a '"' not preceded by a '/'. It can move to the next character until it detects it. If the string should be stored somewhere, it can copy it directly.
 The parser is now at a string end '"'. It can move to the next character.
 The parser is now at a key-value separator. After checking that the current character is ':', it can move to the next character.
 The parser is now at a value start. It can now call the generic value parser which will :
@@ -88,13 +88,13 @@ So far, you can see that our parser is just a character skip engine with benefit
 But you should also realize that skipping an entity is non-trivial.
 In order for our object to be fully parsed (skipped), we will have needed to skip _ every single entity that composed it _.
 
-This fact alone gives us the first golden rule of json parsing :
+This fact alone gives us the first golden rule of JSON parsing :
 
 {{< alert >}}
 DO NOT PARSE THE SAME VALUE TWICE.
 {{< /alert >}}
 
-We previously saw that the json spec itself defines almost entirely the low level aspect of our parser. But there is one question that is still pending : how are we going to use those low level features ? How are we going to parse our json's components ?
+We previously saw that the JSON spec itself defines almost entirely the low level aspect of our parser. But there is one question that is still pending : how are we going to use those low level features ? How are we going to parse our JSON's components ?
 
 So before elaborating on the implications of the first rule, we need to define the high level features of our parser.
 
@@ -102,7 +102,7 @@ So before elaborating on the implications of the first rule, we need to define t
 
 A JSON file is essentially a data container. But are we always interested in all the information that it contains ?
 
-In our case, the answer is no. The ARM64 json spec describes _everything_ about the registers and instruction, but there are many things that we are not interested in (like "Accessors" ?!).
+In our case, the answer is no. The ARM64 JSON spec describes _everything_ about the registers and instruction, but there are many things that we are not interested in (like "Accessors" ?!).
 
 The job of our parser will be to extract _targetted_ information.
 
@@ -111,7 +111,7 @@ For example, in our case, the ARM64 register spec is a gigantic array of registe
 > In the following section, [.] means "all entries of the array", and ["xxx"] means the value of the current object indexed by "xxx".
 
 ``` C
-What we care, and the way to access it in the json is :
+What we care, and the way to access it in the JSON is :
 - root : array : register descriptor.
   - [.] : object : register descriptor.
     - ["name"] : str : register name.
@@ -171,7 +171,7 @@ Notes :
 - allocation is performed using `ns_alloc__` which performs variable def, allocation and size computation at once for less C code.
 - the code uses some functions of my own (non-)standard library, namely, my linked list lib (`ns_dls`) and my map (`ns_map`) lib, so as their dedicated iterators.
 
-## Complete json parsing time.
+## Complete JSON parsing time.
 
 First, to have a vague idea of what is considered an acceptable decoding time, let's have the ARM64 register file decoded by another library.
 
@@ -261,7 +261,7 @@ sys     0m0.014s
 
 So I'm running quicker than python but again, both times have close orders of magnitude. 
 
-## Targetted json parsing time. 
+## Targetted JSON parsing time. 
 
 Now, let's run the code that I showed you at the end of the previous section, which actually extracts register info and does something with it.
 
@@ -300,7 +300,7 @@ The next part will show some high level algorithmic tricks to make this process 
 
 ## Bonus : why I made this command line tool
 
-With that json database, a simple command line tool can do a lot of things for you. Here are the features that matter to me as a machine-level programmer :
+With that JSON database, a simple command line tool can do a lot of things for you. Here are the features that matter to me as a machine-level programmer :
 
 ```
 $ build/prc/prc -h
