@@ -54,7 +54,7 @@ Long story very short, the JSON file defines the basic value structure which can
 
 Note that the beauty of the JSON is that the array and object structures contain values and hence make this format recursive. That will matter when we'll discuss parsing.
 
-The json spec essentially defines the low level features of our parser. It will need to recognize every entity supported by the spec and parse it correctly.
+The JSON spec essentially defines the low level features of our parser. It will need to recognize every entity supported by the spec and parse it correctly.
 
 ## Skipping, and why it matters
 
@@ -70,9 +70,9 @@ Let's see this with an example.
 > In all this section, we will ignore whitespaces to keep the explanation simple.
 
 Let's suppose that our parser is at the start of an object, and that it wants to extract some information contained in this object.
-The parser needs to skip the object start. The json format defines '{' as a single-character array start, so the parser can simply move to the next character.
-The parser is now at a string start. As per the json format, the current char should be '"'. After checking this fact, the parser can move to the next character.
-The parser is now in a string body. The json format defines that the string will end with a '"' not preceded by a '/'. It can move to the next character until it detects it. If the string should be stored somewhere, it can copy it directly.
+The parser needs to skip the object start. The JSON format defines '{' as a single-character array start, so the parser can simply move to the next character.
+The parser is now at a string start. As per the JSON format, the current char should be '"'. After checking this fact, the parser can move to the next character.
+The parser is now in a string body. The JSON format defines that the string will end with a '"' not preceded by a '/'. It can move to the next character until it detects it. If the string should be stored somewhere, it can copy it directly.
 The parser is now at a string end '"'. It can move to the next character.
 The parser is now at a key-value separator. After checking that the current character is ':', it can move to the next character.
 The parser is now at a value start. It can now call the generic value parser which will :
@@ -88,13 +88,13 @@ So far, you can see that our parser is just a character skip engine with benefit
 But you should also realize that skipping an entity is non-trivial.
 In order for our object to be fully parsed (skipped), we will have needed to skip _ every single entity that composed it _.
 
-This fact alone gives us the first golden rule of json parsing :
+This fact alone gives us the first golden rule of JSON parsing :
 
 {{< alert >}}
 DO NOT PARSE THE SAME VALUE TWICE.
 {{< /alert >}}
 
-We previously saw that the json spec itself defines almost entirely the low level aspect of our parser. But there is one question that is still pending : how are we going to use those low level features ? How are we going to parse our json's components ?
+We previously saw that the JSON spec itself defines almost entirely the low level aspect of our parser. But there is one question that is still pending : how are we going to use those low level features ? How are we going to parse our JSON's components ?
 
 So before elaborating on the implications of the first rule, we need to define the high level features of our parser.
 
@@ -102,7 +102,7 @@ So before elaborating on the implications of the first rule, we need to define t
 
 A JSON file is essentially a data container. But are we always interested in all the information that it contains ?
 
-In our case, the answer is no. The ARM64 json spec describes _everything_ about the registers and instruction, but there are many things that we are not interested in (like "Accessors" ?!).
+In our case, the answer is no. The ARM64 JSON spec describes _everything_ about the registers and instruction, but there are many things that we are not interested in (like "Accessors" ?!).
 
 The job of our parser will be to extract _targetted_ information.
 
@@ -111,7 +111,7 @@ For example, in our case, the ARM64 register spec is a gigantic array of registe
 > In the following section, [.] means "all entries of the array", and ["xxx"] means the value of the current object indexed by "xxx".
 
 ``` C
-What we care, and the way to access it in the json is :
+What we care, and the way to access it in the JSON is :
 - root : array : register descriptor.
   - [.] : object : register descriptor.
     - ["name"] : str : register name.
@@ -139,7 +139,7 @@ Our previously established golden rule will have a consequence on the second fea
 
 Here are the declarations of both the low level and high level parts of the parser :
 
-{{< collapsible-code path="content/projects/jsn/prs_api.h" lang="c" title="Spec of the JSON parser." >}}
+{{< collapsible-code path="content/prj/jsn/jsn_0_intro/prs_api.h" lang="c" title="Spec of the JSON parser." >}}
 
 A few notes :
 - the `Skip API` section defines the low level part of the parser. As we covered previously, it is mostly composed of functions that receive a pointer to the start of a particular entity, and that return the location of the next character after this entity.
@@ -153,7 +153,7 @@ A few notes :
 
 Now let's take a look at the code to extract (and simply print) the data that we need from the register spec.
 
-{{< collapsible-code path="content/projects/jsn/reg_xtr_m0.c" lang="c" title="ARM64 register spec extraction code using the JSON parser." >}}
+{{< collapsible-code path="content/prj/jsn/jsn_0_intro/reg_xtr_m0.c" lang="c" title="ARM64 register spec extraction code using the JSON parser." >}}
 
 A few notes :
 - this relies heavily on my own standard library (all the ns_ prefixed stuff). In particular :
@@ -164,14 +164,14 @@ Actually, let's do it.
 
 Here is the code that parses the arm register db and that stores it in a tree-like data structure.
 
-{{< collapsible-code path="content/projects/jsn/reg_xtr_m1.c" lang="c" title="ARM64 register spec extraction code using the JSON parser." >}}
+{{< collapsible-code path="content/prj/jsn/jsn_0_intro/reg_xtr_m1.c" lang="c" title="ARM64 register spec extraction code using the JSON parser." >}}
 
 Notes :
 - while writing this code I renamed a few things, so the reader will notice changes in the parser names. No functional change is implemented.
 - allocation is performed using `ns_alloc__` which performs variable def, allocation and size computation at once for less C code.
 - the code uses some functions of my own (non-)standard library, namely, my linked list lib (`ns_dls`) and my map (`ns_map`) lib, so as their dedicated iterators.
 
-## Complete json parsing time.
+## Complete JSON parsing time
 
 First, to have a vague idea of what is considered an acceptable decoding time, let's have the ARM64 register file decoded by another library.
 
@@ -261,7 +261,7 @@ sys     0m0.014s
 
 So I'm running quicker than python but again, both times have close orders of magnitude. 
 
-## Targetted json parsing time. 
+## Targetted JSON parsing time. 
 
 Now, let's run the code that I showed you at the end of the previous section, which actually extracts register info and does something with it.
 
@@ -269,11 +269,26 @@ This JSON decoder is _relatively_ performant, in the sense that it does not do a
 
 I also placed the register file in /tmp/ which is ram-backed to avoid any form of storage access.
 
-TODO
+```
+$ build/prc/prc -rdb /tmp/regs.json -c 10
+stp 0 : 72.442.
+stp 1 : 49.858.
+stp 2 : 49.996.
+stp 3 : 48.785.
+stp 4 : 48.795.
+stp 5 : 49.943.
+stp 6 : 48.750.
+stp 7 : 50.366.
+stp 8 : 50.716.
+stp 9 : 51.777.
+Average : 52.142.
+```
 
-This duration is statistically relevant (run it multiple times and you'll get a reasonably close time), and reliably reflects the JSON parsing time : just to be sure, I purposefully removed all the data allocation and deallocation, and it was statistically the same : all the execution time is spent in parsing the JSON.
+The first iteration is slower. This can be due to many things, here are the two that come to my mind : 
+- CPU power transition : before I ran the code on my system, it is mostly idle. A first run will cause the CPU to burn power which will make it transition to a higer perf state, and potentially cause linux to move our process to a performant core.  
+- branch predictor training : this first iteration will be exactly the same as the other, and it will give the CPU an exact statistical representation of how branches are taken. Training the branch prediction based on this will effectively cause a better prediction on every next run.
 
-Hence, this time will be our base performance metric for the next chapters.
+The next iterations are statistically closer and this `50ms` execution time will be our base performance metric for the next chapters.
 
 Let's see how much we can shrink it !
 
@@ -285,7 +300,7 @@ The next part will show some high level algorithmic tricks to make this process 
 
 ## Bonus : why I made this command line tool
 
-With that json database, a simple command line tool can do a lot of things for you. Here are the features that matter to me as a machine-level programmer :
+With that JSON database, a simple command line tool can do a lot of things for you. Here are the features that matter to me as a machine-level programmer :
 
 ```
 $ build/prc/prc -h
