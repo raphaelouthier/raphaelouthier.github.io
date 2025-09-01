@@ -11,9 +11,9 @@ title = ""
   # logo = "img/logo.png"
   # secondaryLogo = "img/secondary-logo.png"
   description = "Raphael Outhier's blog"
-  copyright = "© _Quote me if you quote me_"
+  copyright = "© _Raphael Outhier - Quote me if you quote me_"
 
-[author]
+[params.author]
 name = "Raphael Outhier"
 #   image = "img/blowfish_logo.png"
 headline = "I write and debug stuff to debug stuff."

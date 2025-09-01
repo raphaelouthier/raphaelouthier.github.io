@@ -68,7 +68,7 @@ defaultBackgroundImage = "bg_crb.png" # used as default for background images
   # showRelatedContent = false
   # relatedContentLimit = 3
   showTaxonomies = true
-  showAuthorsBadges = false
+  showAuthorsBadges = true
   showWordCount = false
   # sharingLinks = [ "linkedin", "twitter", "reddit", "pinterest", "facebook", "email", "whatsapp", "telegram"]
 
