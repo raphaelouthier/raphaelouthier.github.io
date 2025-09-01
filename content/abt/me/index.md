@@ -30,7 +30,7 @@ I am :
 - living in Texas.
 
 Dates :
-- 2015 -> 2019 : studied at an engineering school in Paris where I split my time between low level programming and building robots out of ducktape and prayers.
+- 2015 -> 2019 : studied at an engineering school in Paris where I split my time between low level programming and building robots out of ducktape and coffee.
 - 2020 -> 2021 : worked for ARM in Sophia Antipolis (France) as a CPU verification engineer.
 - 2021 -> 2022 : worked for myself.
 - 2022 -> now  : working for Apple as a platform kernel engineer.
