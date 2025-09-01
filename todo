@@ -1,4 +1,6 @@
 
+TODO put mmap + full access in a dedicated doc.
+
 TODO switch case optimization key transformation based on bit shift + and with set mask + count set bits 
 
 static patch
