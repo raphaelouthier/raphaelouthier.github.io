@@ -142,6 +142,14 @@ In our case, we always parse the same JSON file, so we can just check its correc
 
 In a production environment, it may or may not be safe to assume the correctness of real-time data. It will depend.
 
+## Updating how we count. 
+
+The reader will notice that the average in our previous invocations is unreliable as it includes training sets.
+
+Let's update our testing system to include a configurable set of training iterations, not included in the final measurement, and also to pin our process to a PCore.
+
+Next invocations will show a `-C 10` to include 10 uncounted training iterations, which will show a more relevant average. 
+
 ## 20% gain by skipping the right way
 
 Our container skippers are pretty complex for what they intend to do : they are calling sub-skippers for every entity that containers are composed of. By doing so, they strictly respect the JSON format. But who actually cares, since they discard the result.
@@ -159,26 +167,46 @@ We can also improve our number skipper. A quick look at the ascii table will sho
 
 {{< collapsible-code path="content/prj/jsn/jsn_1_hl/fst_skp.h" lang="c" title="Faster JSON entity skippers." >}}
 
+{{< alert >}}
+The attentive reader will note that the string skip function here is improper, as it only takes into account the possible preceding backslash of the candidate end quote. In reality, we must go backwards and count the number of leading backslashes, and stop if it is even.
+
+The next chapter will provide a correct implementation written in assembly.
+{{< /alert >}}
+
 Let's check how much perf we gained :
 
 ```
-$ nkb && build/prc/prc -rdb /tmp/regs.json -c 10
-stp 0 : 62.251.
-stp 1 : 41.016.
-stp 2 : 40.413.
-stp 3 : 40.051.
-stp 4 : 41.333.
-stp 5 : 42.412.
-stp 6 : 41.331.
-stp 7 : 41.820.
-stp 8 : 41.574.
-stp 9 : 41.314.
-Average : 43.351.
+$ nkb &&  taskset -c 4  build/prc/prc -rdb /tmp/regs.json -C 10 -c 10
+Compiling lib/js.c
+Packing lib_ns.o
+Auto-packing build/prc/prc.o
+Auto-linking build/prc/prc
+stp 0 : 48.269.
+stp 1 : 40.846.
+stp 2 : 40.871.
+stp 3 : 40.929.
+stp 4 : 40.881.
+stp 5 : 40.892.
+stp 6 : 40.873.
+stp 7 : 40.895.
+stp 8 : 40.902.
+stp 9 : 40.906.
+stp 10 : 40.855.
+stp 11 : 40.879.
+stp 12 : 40.890.
+stp 13 : 40.867.
+stp 14 : 40.852.
+stp 15 : 40.851.
+stp 16 : 40.852.
+stp 17 : 40.912.
+stp 18 : 40.867.
+stp 19 : 40.880.
+Average : 40.870.
 ```
 
 This trick just gave us a 20% perf gain.
 
-## 25% gain by gathering memory reads
+## 20% gain by gathering memory reads
 
 One of the bottlenecks of modern systems is memory access.
 
@@ -205,25 +233,76 @@ Unless they give you a 25% perf increase. In which case it’s just fine...
 Let's see how much we gained.
 
 ```
-$ nkb && build/prc/prc -rdb /tmp/regs.json -c 10
-stp 0 : 59.529.
-stp 1 : 34.611.
-stp 2 : 30.723.
-stp 3 : 30.411.
-stp 4 : 29.897.
-stp 5 : 31.522.
-stp 6 : 30.488.
-stp 7 : 30.425.
-stp 8 : 30.707.
-stp 9 : 30.250.
-Average : 33.856.
+$ nkb &&  taskset -c 4  build/prc/prc -rdb /tmp/regs.json -C 10 -c 10
+Compiling lib/js.c
+Packing lib_ns.o
+Auto-packing build/prc/prc.o
+Auto-linking build/prc/prc
+stp 0 : 40.102.
+stp 1 : 33.203.
+stp 2 : 33.082.
+stp 3 : 33.099.
+stp 4 : 33.133.
+stp 5 : 33.136.
+stp 6 : 33.124.
+stp 7 : 33.142.
+stp 8 : 33.137.
+stp 9 : 33.123.
+stp 10 : 33.123.
+stp 11 : 33.127.
+stp 12 : 33.117.
+stp 13 : 33.125.
+stp 14 : 33.115.
+stp 15 : 33.128.
+stp 16 : 33.127.
+stp 17 : 33.114.
+stp 18 : 33.114.
+stp 19 : 33.109.
+Average : 33.119.
 ```
 
-That's another 10ms gain, 25% better than trick 1, 40% better than the original recursive version, among which 20pp are due to this added trick.
+## Grinding even more with a lookup table.
+
+One problem that we have is that we have a lot of if statements in our previous code, and this makes the life of the branch predictor complex.
+
+We can ease its life by removing one level of condition using a lookup table, which will contain the nest count increment or decrement to apply for each character. Only `[]` or `{}` will affect it, depending on what entity we are parsing.
+
+{{< collapsible-code path="content/prj/jsn/jsn_1_hl/lut.h" lang="c" title="Removing a level of conditionals." >}}
+
+```
+$ nkb &&  taskset -c 4  build/prc/prc -rdb /tmp/regs.json -C 10 -c 10
+Compiling lib/js.c
+Packing lib_ns.o
+Auto-packing build/prc/prc.o
+Auto-linking build/prc/prc
+stp 0 : 37.335.
+stp 1 : 29.917.
+stp 2 : 29.685.
+stp 3 : 29.706.
+stp 4 : 29.699.
+stp 5 : 29.687.
+stp 6 : 29.690.
+stp 7 : 29.701.
+stp 8 : 29.771.
+stp 9 : 29.726.
+stp 10 : 29.715.
+stp 11 : 29.745.
+stp 12 : 29.725.
+stp 13 : 29.713.
+stp 14 : 29.714.
+stp 15 : 29.756.
+stp 16 : 29.725.
+stp 17 : 29.705.
+stp 18 : 29.701.
+stp 19 : 29.710.
+Average : 29.720.
+```
+
+That's another 3.4ms gain.
 
 ## Conclusion
 
-With those improvements we almost divided our execution time by 2.
+With those improvements we almost divided our execution time by 2, but we are at the limit of what we can do with just the C language at hand.
 
-As the next chapter will show, we can shrink it even more but to do this, we need to move to the assembly level, to apply tricks that the compiler is too clumsy to handle correctly.
+The next chapter will go at the assembly level, and try to leverage assembly tricks to increase the performance even more.
 
