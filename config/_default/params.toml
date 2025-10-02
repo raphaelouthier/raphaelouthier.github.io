@@ -12,7 +12,7 @@ autoSwitchAppearance = true
 enableSearch = true
 enableCodeCopy = true
 
-mainSections = ["prj"]
+mainSections = ["art"]
 # robots = ""
 
 disableImageOptimization = true
@@ -40,7 +40,7 @@ defaultBackgroundImage = "bg_crb.png" # used as default for background images
   showRecent = true
   showRecentItems = 20
   showMoreLink = true
-  showMoreLinkDest = "/prj"
+  showMoreLinkDest = "/art"
   cardView = true
   cardViewScreenWidth = false
   layoutBackgroundBlur = true # only used when layout equals background
@@ -92,25 +92,37 @@ defaultBackgroundImage = "bg_crb.png" # used as default for background images
   excludedKinds = ["taxonomy", "term"]
 
 [taxonomy]
-  showTermCount = true
-  showHero = false
-  # heroStyle = "background" # valid options: basic, big, background, thumbAndBackground
+  ShowHero = true
+  heroStyle = "thumbAndBackground" # valid options: basic, big, background, thumbAndBackground
+  layoutBackgroundBlur = true # only used when heroStyle equals background or thumbAndBackground
+  layoutBackgroundHeaderSpace = true # only used when heroStyle equals background
   showBreadcrumbs = false
+  showSummary = true 
   showViews = false
   showLikes = false
   showTableOfContents = false
-  cardView = false
+  showCards = true
+  groupByYear = true
+  cardView = true
+  cardViewScreenWidth = true
+  constrainItemsWidth = true
 
 [term]
-  showHero = false
-  # heroStyle = "background" # valid options: basic, big, background, thumbAndBackground
+
+  ShowHero = true
+  heroStyle = "thumbAndBackground" # valid options: basic, big, background, thumbAndBackground
+  layoutBackgroundBlur = true # only used when heroStyle equals background or thumbAndBackground
+  layoutBackgroundHeaderSpace = true # only used when heroStyle equals background
   showBreadcrumbs = false
+  showSummary = true 
   showViews = false
   showLikes = false
-  showTableOfContents = true
-  groupByYear = false
-  cardView = false
-  cardViewScreenWidth = false
+  showTableOfContents = false
+  showCards = true
+  groupByYear = true
+  cardView = true
+  cardViewScreenWidth = true
+  constrainItemsWidth = true
 
 [firebase]
   # apiKey = "XXXXXX"

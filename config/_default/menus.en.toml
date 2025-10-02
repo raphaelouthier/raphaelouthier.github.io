@@ -17,18 +17,18 @@
   weight = 1
 
 [[main]]
-  name = "Projects"
-  pageRef = "prj"
+  name = "Articles"
+  pageRef = "art"
   weight = 2
 
 [[main]]
   name = "Assembly"
-  pageRef = "asm"
+  pageRef = "categories/assembly"
   weight = 3
 
 [[main]]
   name = "Documentation"
-  pageRef = "doc"
+  pageRef = "categories/documentation"
   weight = 4
 
 

@@ -25,12 +25,12 @@ Hola !
 
 I am :
 - Raphael Outhier.
-- french.
-- have a passion for system level programming.
+- passionate about system level programming.
 - living in Texas.
+- french.
 
 Dates :
-- 2015 -> 2019 : studied at an engineering school in Paris where I split my time between low level programming and building robots out of ducktape and coffee.
+- 2015 -> 2019 : studied at an engineering school in Paris where I split my time between low level programming and building robots out of duct tape and coffee.
 - 2020 -> 2021 : worked for ARM in Sophia Antipolis (France) as a CPU verification engineer.
 - 2021 -> 2022 : worked for myself.
 - 2022 -> now  : working for Apple as a platform kernel engineer.
@@ -43,12 +43,13 @@ I have a lot of personal projects, and this website is about them.
 
 Those projects revolve around :
 - kernel development for microcontrollers.
-- coming up with the fastest implementations of 2d/3d/4d computational geometry algorithms in the hope that someday I could have my own little solidworks-like CAD software. I have as of today never found the time to write on this part of my life, but if I do, I promisse to include an introduction to all the facinating math behind computational geometry.  
+- coming up with the fastest implementations of 2d/3d/4d computational geometry algorithms in the hope that someday I could have my own little solidworks-like CAD software. I have as of today never found the time to write on this part of my life, but if I do, I promise to write an intro to all the fascinating math behind computational geometry.
 - automatic trading because who doesn't like the prospects of free money ?
 - algorithmic optimization and assembly trickery, for the intellectual challenge.
 
-That amounts to a lot of projects and code (over 1 million lines of pure C/C++/asm joy). As stated earlier, I am not authorized to publish any project because of my current job at Apple. But maybe that will change in some years, who knows.
+That amounts to a lot of projects and code (over 1 million lines of pure C/asm joy). Sadly I am not authorized to publish any project because of my current job at Apple. But maybe that will change in some years, who knows.
 
 In the meantime, the best I can do is to try to make good descriptive articles about those, and hope that you will find them interesting.
+
 
 
