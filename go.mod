@@ -1,4 +1,4 @@
-module github.com/briztal/briztal.github.io
+module github.com/raphaelouthier/raphaelouthier.github.io
 
 go 1.20
 
