@@ -8,9 +8,9 @@ categories: ["Trading bot"]
 showSummary: true
 date: 2025-07-19
 showTableOfContents : true
-draft: false 
+draft: true 
 ---
-s chapter elaborates on how the algorithm that passes orders given the prediction made by a strategy.
+This chapter elaborates on how the algorithm that passes orders given the prediction made by a strategy.
 
 It will also serve as an opportunity to show the backtesting in action.
 

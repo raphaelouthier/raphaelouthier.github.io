@@ -8,7 +8,7 @@ categories: ["Trading bot"]
 showSummary: true
 date: 2025-06-10
 showTableOfContents : true
-draft: false 
+draft: true 
 ---
 
 This series of articles describe the structure of a low frequency trading bot supporting dynamic, adjustable and backtestable investment strategies, a project that I have been working on and off for three years in the hope that some day, I could just start it in the morning and watch it print money while I drink coffee. Or contemplate it burn all my savings in 10 minutes.💸
