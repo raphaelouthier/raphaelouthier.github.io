@@ -16,7 +16,14 @@ draft: false
 
 ### CPUs
 
-The RPI2040 features two cortex M0+ CPUs, able to execute the thumb ISA.
+The RPI2040 features two cortex M0+ CPUs, able to execute both thumb-1 and thumb-2 (truncated) ISA..
+
+Thumb 1 instructions are 16 bits wide and that's perfect for us since it'll make a very dense binary.
+
+Thumb 2 instructions are 32 bits wide and we'll try to avoid using them.
+
+When we jump to an arbitrary location with bx <addr>, if the target is a thumb instruction, we must tell the CPU that it is so by adding one to the target address.
+
 
 ### Memory
 
@@ -37,13 +44,15 @@ GPIO 25 is used as an LED.
 
 On reset, each pin is usable as input.
 
-All GPIOs input values can be read at once by reading TODO.
+All GPIOs input values can be read at once by reading 0xd0000004.
 
-All GPIOs modes (input, output) can be set at once by setting TODO.
+All GPIOs modes (input, output) can be set at once by writing at 0xd0000024.
 
-To set a GPIO in output mode, we also need to set its AF to 5 (SIO).
+All GPIOs output states can be set high by writing 1s at 0xd0000014 and low by writing 1s at 0xd0000018.
 
-IO_BANK0 which sets the AF of each pin stays on RESET mode after reset. Reset needs to be deasserted before using it.
+To set a GPIO in output mode, we also need to set its AF to 5 (SIO). GPIO25's control register can be written at 0x400140cc to do so.
+
+IO_BANK0 which sets the AF of each pin stays on RESET mode after reset. Reset needs to be deasserted (bit 5 of 0x4000c000) before using IO_BANK0. Reset status can be found at 0x4000c008.
 
 ### Boot sequence : stage 1
 
@@ -65,7 +74,7 @@ The stage 2 bootloader will be our initial firmware.
 
 I have tried in vain to manually calculate the checksum myself and generate the final binary by hand with a dd-like command.
 
-It was pointless and I lost more time that I wanted to this so I just went on and installed [uf2-util](https://crates.io/crates/uf2-util) which I found in [this article]() written by the author of the tool.
+It was pointless and I lost more time that I wanted to this so I just went on and installed [uf2-util](https://crates.io/crates/uf2-util) which I found in [this article](https://sharpcoder.medium.com/baremetal-pico-venturing-beyond-the-bootloader-e70578c4048d) written by the author of the tool.
 
 It saved me some sanity and I am grateful for this tool's existence.
 
