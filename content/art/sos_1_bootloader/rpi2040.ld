@@ -1,0 +1,8 @@
+MEMORY {
+  BOOTLOADER(rx) : ORIGIN = 0x20000000, LENGTH = 0x100
+}
+SECTIONS {
+  .stage2 ORIGIN(BOOTLOADER) : {
+    KEEP(*(.stage2))
+  } > BOOTLOADER
+}

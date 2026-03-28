@@ -1,5 +1,5 @@
 ---
-title: "ScratchOS : introduction."
+title: "ScratchOS : introduction"
 summary: "Bringup game, masochist mode."
 series: [ScratchOS]
 series_order: 0
