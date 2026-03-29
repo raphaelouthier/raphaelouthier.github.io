@@ -18,7 +18,7 @@ Please refer to the source of truth if you want to use thumb-1 and pardon my eng
 
 ## Context
 
-These days when I have time I'm playing ScratchOS and I'm currently at the nibble stage where I can only write code via GPIOs and have the firmware execute it. 
+These days when I have time I'm playing ScratchOS and I'm currently at the nibble stage where I can only write code via GPIOs and have the firmware execute it.
 
 To move forward I need to write a few simple programs to start taking over from here.
 
@@ -34,21 +34,21 @@ All the encodings listed here can be found in the [ARM Thumb 1 spec](/art/doc_th
 
 ### PC-relative branch.
 
-Branch syntax : 
+Branch syntax :
 
 | 1110 | 0xxx | xxxx | xxxx |
 |---|---|---|---|
 | e | 0-7 | .... | .... |
 
-branch behavior : 
+branch behavior :
 takes PC of instruction, adds 4, sign extends 2 * X to 32 bits, adds it, and sets PC to the result.
 
-branch forward : 
+branch forward :
 |1110 | 00xx | xxxx | xxxx |
 |---|---|---|---|
 |e | 0-3 | .... | .... |
 
-branch backward : 
+branch backward :
 | 1110 | 01xx | xxxx | xxxx |
 |---|---|---|---|
 | e | 4-7 | .... | .... |
@@ -62,22 +62,22 @@ deadloop : branch with offset of -4 -> X = -2 = (~0b10 + 1 = 0b111 1111 1101 + 1
 
 ### PC-relative load :
 
-Generic case : 
+Generic case :
 
 | 0100 | 1ddd | oooo | oooo |
 |---|---|---|---|
 | 4 | 8-f | .... | .... |
 
-Operands : 
+Operands :
 * `d` : dest register.
 * `o` : offset
 
-Behavior : 
+Behavior :
 * take v = (PC of instruction + 4) & ~(3);
 * take o and multiply it by 4.
 * load at v + o, write result in dest reg.
 
-Particular cases : 
+Particular cases :
 
 Load at N words after PC (N > 0) after PC into r0 :
 | 0100 | 1000 | oooo | oooo |
@@ -99,13 +99,13 @@ And so on.
 
 ### Operations on high registers.
 
-Encoding : 
+Encoding :
 
-| 0100 | 01oo | SDss | sddd | 
+| 0100 | 01oo | SDss | sddd |
 |---|---|---|---|
 |4 | 4-7 | .... | .... |
 
-Operands : 
+Operands :
  * `o` : op : 00 = add, 01 = cmp, 10 = mov, 11 = bx.
  * `S` : high flag for source.
  * `D` : high flag for dest.
@@ -128,7 +128,7 @@ mov r0, pc = mov 0000 1111 :
 |---|---|---|---|
 | 4 | 6 | 4 | f |
 
-mov sp, r0 = mov 1101 0000 : 
+mov sp, r0 = mov 1101 0000 :
 
 | 0010 | 0110 | 1010 | 1000 |
 |---|---|---|---|
@@ -136,13 +136,13 @@ mov sp, r0 = mov 1101 0000 :
 
 `bx <s>`
 
-| 0100 | 0111 | 00ss | s000 | 
+| 0100 | 0111 | 00ss | s000 |
 |---|---|---|---|
 |4 | 7 | 0-3 | [08] |
 
-`bx r0` 
+`bx r0`
 
-| 0100 | 0111 | 0000 | 0000 | 
+| 0100 | 0111 | 0000 | 0000 |
 |---|---|---|---|
 |4 | 7 | 0 | 0 |
 
@@ -153,7 +153,7 @@ mov sp, r0 = mov 1101 0000 :
 |---|---|---|---|
 | [23] | .... | .... | .... |
 
-Operands : 
+Operands :
 * `o` : operation : 00 mov 01 cmp 10 add 11 sub
 * `d` : dest low reg.
 * `i` : offset.
@@ -164,19 +164,19 @@ addition syntax :
 |---|---|---|---|
 | 3 | 0-7 | .... | .... |
 
-which makes a ince lil 3 [reg] offset mnemonic.
+which makes a nice lil 3 [reg] offset mnemonic.
 
 Add offset to r0 : 3 0 offset.
 
-### push pop 
+### push pop
 
 | 1011 | m01r | llll | llll |
 |---|---|---|---|
-| b | .... | .... | .... |     
+| b | .... | .... | .... |
 
 Operands :
  * `m` : 0 store 1 load
- * `r` : 0 don't store LR / load PC, 1 store LR / load PC 
+ * `r` : 0 don't store LR / load PC, 1 store LR / load PC
  * `l` : register mask. bit : 0 not pushed / popped, 1 pushed/popped.
 
 push (regular) :
@@ -207,12 +207,12 @@ Operands :
  * `b` : base register
  * `d` : data register (source or dest).
 
-word store with no offset : 
+word store with no offset :
 | 0110 | 0000 | 00bb | bddd |
 |---|---|---|---|
 | 6 | 0 | 0-3 | .... |
 
-word load with no offset : 
+word load with no offset :
 | 0110 | 1000 | 00bb | bddd |
 |---|---|---|---|
 |6 | 8 | 0-3 | .... |
@@ -234,8 +234,5 @@ generally, load any register at address contained in r0 :
 | 0110 | 1000 | 0000 | 0ddd |
 |---|---|---|---|
 | 6 | 8 | 0 | Rd |
-
-
-
 
 
